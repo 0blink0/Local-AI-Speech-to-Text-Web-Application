@@ -47,13 +47,13 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 然后浏览器打开：<http://127.0.0.1:8000>
 
 > 首次启动会自动加载模型。若权重尚未下载，会先从 HuggingFace 拉取
-> （`small` 模型约数百 MB，请耐心等待），这也正是题目允许的"首次安装/初始化下载"。
+> （默认 `base` 模型约 140 MB，请耐心等待），这也正是题目允许的"首次安装/初始化下载"。
 > 想提前下载或网络受限，请见下一节。
 
 ### 3.1 模型初始化（推荐，可选）
 
 ```bash
-# 默认从 HuggingFace 下载 small 模型到项目内 models/small/
+# 默认从 HuggingFace 下载 base 模型到项目内 models/base/
 python scripts/download_models.py
 
 # 国内网络推荐：改用 ModelScope（实测速度明显更快）
@@ -62,8 +62,8 @@ python scripts/download_models.py --source modelscope
 # HuggingFace 网络受限时使用镜像
 python scripts/download_models.py --mirror
 
-# 换更小的模型（更快、精度略低）
-python scripts/download_models.py --model base --source modelscope
+# 换更大的模型（更准、更慢）
+python scripts/download_models.py --model small --source modelscope
 ```
 
 下载完成后**无需任何额外配置**：应用会自动发现 `models/<size>/` 下的权重
@@ -77,13 +77,13 @@ python scripts/download_models.py --model base --source modelscope
 | 模型 | 体积 | 中文相似度 | 中文 RTF | 建议场景 |
 | --- | --- | --- | --- | --- |
 | `tiny` | 75.5 MB | 0.846 ❌ | 0.031 | 不推荐中文（错字多） |
-| `base` | 138.5 MB | 0.974 | 0.058 | **实时识别**、低配机器 |
-| `small`（默认） | 461 MB | **1.000** | 0.172 | **默认**，准确率优先 |
+| **`base`（默认）** | 138.5 MB | 0.974 | 0.058 | 默认；速度约为 small 的 3 倍，实时识别可用 |
+| `small` | 461 MB | **1.000** | 0.172 | 准确率优先；但实时识别在长音频上明显滞后 |
 
-切换方式：
+默认使用 `base`：中英文都能正确识别，且实时识别体验可用。需要极致准确率时切到 `small`：
 
 ```bash
-set ASR_MODEL=base
+set ASR_MODEL=small
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
@@ -94,7 +94,7 @@ python scripts/benchmark_models.py --models tiny base small --repeat 3
 ```
 
 > 若两个下载源都无法访问，也可以手动把 CTranslate2 格式的权重放到
-> `models/small/`（需含 `model.bin`、`config.json`、`tokenizer.json`），
+> `models/base/`（需含 `model.bin`、`config.json`、`tokenizer.json`），
 > 或用 `ASR_MODEL=/绝对路径/到/模型目录` 指定。
 
 ### 3.3 离线运行验证
@@ -226,7 +226,7 @@ python scripts/prepare_samples.py --check
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | `ASR_ENGINE` | `faster_whisper` | 引擎：`faster_whisper` 或 `mock`（测试用） |
-| `ASR_MODEL` | `small` | 模型规模：`tiny`/`base`/`small`/`medium`/`large-v3`，或本地模型目录（选择建议见 §3.2） |
+| `ASR_MODEL` | `base` | 模型规模：`tiny`/`base`/`small`/`medium`/`large-v3`，或本地模型目录（选择建议见 §3.2） |
 | `ASR_MODEL_DIR` | `项目内 models/` | 权重缓存目录；`models/<size>/` 存在时自动优先使用 |
 | `ASR_DEVICE` | `cpu` | 推理设备 |
 | `ASR_COMPUTE_TYPE` | `int8` | 量化类型，CPU 推荐 `int8` |
@@ -302,13 +302,14 @@ local-speech-to-text/
   `ASR_INITIAL_PROMPT_ZH=以下是普通话的句子。`；但实测该提示词在**短音频**上可能诱发
   幻觉，因此默认关闭，取舍交由使用者。
 * 实时识别为"分片 + 累积重识别"（Whisper 非原生流式）：每收到新分片就对整个缓冲重新
-  识别，计算量随时长近似平方增长。`small` 模型下 11 秒录音的中间结果会明显滞后
-  （实测超过 60 秒未完成），**实时通道建议用 `base`**（同段音频约 6.8 秒完成）；
+  识别，计算量随时长近似平方增长。默认 `base` 模型下 11 秒录音约 6.8 秒完成全部
+  partial；若临时切到 `small`，同一段音频的中间结果会明显滞后（实测超过 60 秒未完成）。
   题目不要求严格毫秒级延迟。
 * 单进程串行推理（题目 §8 不要求并发）；多人同时识别会排队。
 * 60 秒上限只在前端录音生效；上传音频只受 10 MB 体积限制（有意为之）。
 * 不支持的输入（如 AMR、纯视频文件）返回明确的 415/400 提示，不会被静默处理。
-* 首次启动需联网下载权重（约 483 MB）；如需完全离线部署，请先执行第 3.1 节。
+* 首次启动需联网下载权重（默认 `base` 约 140 MB；`small` 约 483 MB）；如需完全离线部署，
+  请先执行第 3.1 节。
 
 ---
 

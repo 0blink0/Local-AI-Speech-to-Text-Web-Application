@@ -138,8 +138,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="下载本地 ASR 模型权重")
     parser.add_argument(
         "--model",
-        default=os.getenv("ASR_MODEL", "small"),
-        help="模型规模：tiny/base/small/medium/large-v3（默认取 ASR_MODEL 或 small）",
+        default=os.getenv("ASR_MODEL", "base"),
+        help="模型规模：tiny/base/small/medium/large-v3（默认取 ASR_MODEL 或 base）",
     )
     parser.add_argument(
         "--dir",

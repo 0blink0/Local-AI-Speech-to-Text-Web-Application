@@ -8,7 +8,7 @@
 
 可选环境变量：
 
-* ``ASR_MODEL``       模型规模（默认 small）
+* ``ASR_MODEL``       模型规模（默认 base）
 * ``ASR_MODEL_DIR``   权重缓存目录（建议指向项目内 models/，便于离线复现）
 * ``ASR_DEVICE``      默认 cpu
 * ``ASR_COMPUTE_TYPE``默认 int8

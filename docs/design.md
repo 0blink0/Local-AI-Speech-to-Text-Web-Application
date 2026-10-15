@@ -204,8 +204,8 @@ getUserMedia → AudioContext(48k) → AudioWorkletNode(pcm-capture)
 
 1. **一个模型覆盖两种语言**：F3 要求"输出中文/英文"且支持中英混合自动检测
    （加分），Whisper 的多语言能力天然满足，无需维护两套模型与两套语言路由。
-2. **CPU 友好**：CTranslate2 的 int8 量化让 `small` 模型在普通开发机 CPU 上
-   可将 5–10 秒音频在数秒内转写，满足题目"普通 CPU"要求。
+2. **CPU 友好**：CTranslate2 的 int8 量化让 `base`/`small` 模型在普通开发机 CPU 上
+   分别达到约 17 倍 / 6 倍实时速度，满足题目"普通 CPU"要求。
 3. **安装无痛**：`pip install faster-whisper` 即可，依赖 `ctranslate2`
    与 `onnxruntime` 均有 Windows x64 wheel，**不触碰题目禁止的编译型原生依赖**。
 4. **离线友好**：权重可预下载到指定目录（`ASR_MODEL_DIR`），之后设置
@@ -221,20 +221,19 @@ getUserMedia → AudioContext(48k) → AudioWorkletNode(pcm-capture)
 | 模型 | 体积 | 加载耗时 | 中文 RTF | 中文相似度 | 英文 RTF | 英文相似度 |
 | --- | --- | --- | --- | --- | --- | --- |
 | tiny | 75.5 MB | 0.22 s | 0.031 | 0.846 | 0.031 | 1.000 |
-| **base** | 138.5 MB | 0.33 s | 0.058 | 0.974 | 0.058 | 1.000 |
-| **small（默认）** | 461 MB | 0.97 s | 0.172 | **1.000** | 0.171 | **1.000** |
+| **base（默认）** | 138.5 MB | 0.33 s | 0.058 | 0.974 | 0.058 | 1.000 |
+| small | 461 MB | 0.97 s | 0.172 | **1.000** | 0.171 | **1.000** |
 
 * RTF（实时率）= 处理耗时 / 音频时长，`< 1` 即快于实时。
 * `tiny` 的中文出现实质性错误（"语音识别"→"语音时别"、"模型"→"本帝"），**不建议用于中文**。
 * `base` 中文仅一处错字（"用于"→"用语"），速度约为 `small` 的 **3 倍**；
   在实时识别场景下差异更明显：11.33 秒音频，`base` 约 6.8 秒完成全部 partial，
-  `small` 在同一时长下中间结果明显滞后。
-
-**默认仍为 `small`**：题目考核的核心是"识别结果正确"，优先保证质量；
-追求速度或交互流畅度时用一条环境变量即可切换：
+  `small` 在同一时长下超过 60 秒仍未完成。
+* `small` 准确率满分但代价明显，因此**默认选用 `base`**：中英文均可正确识别，
+  且实时识别体验可用。追求极致准确率时用一条环境变量切回 `small`：
 
 ```bash
-set ASR_MODEL=base
+set ASR_MODEL=small
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
@@ -244,7 +243,7 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 | --- | --- |
 | 非原生流式 | 分片 + 累积重识别（题目允许）；实时通道建议用小模型 |
 | 首次需下载数百 MB | 独立下载脚本 + HuggingFace 镜像 / ModelScope 双源 + 权重不入库 |
-| 中文精度不及部分专用模型 | 默认 `small`；可通过 `ASR_MODEL` 升到 `medium` |
+| 中文精度不及部分专用模型 | 默认 `base`（中文相似度 0.974）；可通过 `ASR_MODEL` 升到 `small`/`medium` |
 | 中文偶尔输出繁体 | 提供 `ASR_INITIAL_PROMPT_ZH` 提示词；但因短音频幻觉风险默认关闭（见 test-report §3.5） |
 
 ---

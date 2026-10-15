@@ -33,7 +33,7 @@ def resolve_model_path(settings: Settings) -> str:
     1. ``ASR_MODEL`` 本身就是一个存在的目录 → 直接使用（本地目录形态的权重）。
     2. ``<ASR_MODEL_DIR>/<ASR_MODEL>/model.bin`` 存在 → 使用该本地目录，
        这样 ``scripts/download_models.py`` 下载后无需任何额外配置。
-    3. 否则返回原始名称（如 ``small``），交由 faster-whisper 从 Hub 解析。
+    3. 否则返回原始名称（如 ``base``），交由 faster-whisper 从 Hub 解析。
     """
     raw = (settings.model_size or "").strip()
     candidate = Path(raw)
