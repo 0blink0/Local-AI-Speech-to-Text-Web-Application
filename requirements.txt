@@ -1,5 +1,14 @@
+# ============================================================================
+# 默认使用国内 PyPI 镜像（清华大学 TUNA），安装无需额外参数：
+#     python -m pip install -r requirements.txt
+#
+# 说明：requirements 文件中的 --index-url 优先级最高，会覆盖命令行的 -i、
+#       PIP_INDEX_URL 环境变量与 pip 配置文件。若需改用官方源或其他镜像，
+#       请把下面这行注释掉（前面加 #），或在文件中改写为你的镜像地址。
+# ============================================================================
+--index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
 # 运行时依赖（CPU 推理，无需 CUDA）
-# 统一启动方式见 README.md
 fastapi>=0.115,<1.0
 uvicorn[standard]>=0.32,<1.0
 python-multipart>=0.0.9

@@ -5,13 +5,15 @@
 
 用法::
 
-    # HuggingFace（默认）
+    # 默认：从 ModelScope 下载 base 模型（国内网络推荐）
     python scripts/download_models.py
-    python scripts/download_models.py --mirror          # 使用 hf-mirror.com 镜像
-    python scripts/download_models.py --model base      # 更小的模型
 
-    # ModelScope（国内网络推荐，速度通常更好）
-    python scripts/download_models.py --source modelscope
+    # 从 HuggingFace 下载（默认也走国内镜像端点）
+    python scripts/download_models.py --source hf
+
+    # 换更大的模型 / 指定目录
+    python scripts/download_models.py --model small
+    python scripts/download_models.py --model base --dir D:\\models
 
 下载完成后无需任何额外配置，应用会自动使用 ``models/<size>/`` 下的权重
 （见 ``app/asr/registry.py::resolve_model_path``）。离线验证::
@@ -98,9 +100,10 @@ def download_from_hf(model_size: str, target: Path, mirror: bool) -> bool:
     """通过 huggingface_hub 下载（首次初始化最标准的做法）。"""
     if mirror:
         os.environ["HF_ENDPOINT"] = HF_MIRROR_ENDPOINT
-        print(f"数据源   : HuggingFace（镜像 {HF_MIRROR_ENDPOINT}）")
     else:
-        print("数据源   : HuggingFace" + (f"（{os.environ['HF_ENDPOINT']}）" if os.getenv("HF_ENDPOINT") else ""))
+        # 与运行时保持一致：未显式指定时默认走国内镜像
+        os.environ.setdefault("HF_ENDPOINT", HF_MIRROR_ENDPOINT)
+    print(f"数据源   : HuggingFace（{os.environ.get('HF_ENDPOINT')}）")
 
     from faster_whisper import WhisperModel
 
@@ -149,10 +152,10 @@ def main() -> int:
     parser.add_argument(
         "--source",
         choices=["hf", "modelscope"],
-        default="hf",
-        help="下载源；国内网络建议 modelscope",
+        default="modelscope",
+        help="下载源（默认 modelscope，国内网络更快；如需官方源用 --source hf）",
     )
-    parser.add_argument("--mirror", action="store_true", help="HuggingFace 使用 hf-mirror.com 镜像")
+    parser.add_argument("--mirror", action="store_true", help="HuggingFace 使用国内镜像端点")
     args = parser.parse_args()
 
     root = Path(args.dir).expanduser()
@@ -174,9 +177,9 @@ def main() -> int:
         return 1
     except Exception as exc:
         print(f"下载失败：{exc}")
-        if args.source == "hf":
-            print("提示：网络受限时请改用 --mirror，或直接使用 ModelScope：")
-            print("      python scripts/download_models.py --source modelscope")
+        print("提示：可改用另一个源重试：")
+        print("      python scripts/download_models.py --source hf --mirror")
+        print("      python scripts/download_models.py --source modelscope")
         return 1
 
     if not ok:

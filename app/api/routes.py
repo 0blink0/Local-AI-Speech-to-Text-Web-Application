@@ -76,6 +76,7 @@ async def info(settings: Settings = Depends(get_settings)) -> EngineInfo:
         sample_rate=settings.target_sample_rate,
         max_upload_mb=settings.max_upload_mb,
         max_record_seconds=settings.max_record_seconds,
+        hf_endpoint=settings.hf_endpoint,
         supported_languages=list(SUPPORTED_LANGUAGES),
     )
 

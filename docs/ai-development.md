@@ -93,20 +93,21 @@ P8 样本、文档、交付检查
 
 | # | 问题 | 定位方式 | 修复 |
 | --- | --- | --- | --- |
-| 1 | `pip install` 默认源读超时 | 报错栈显示 `files.pythonhosted.org` ReadTimeout | 切换镜像源并加长超时 |
+| 1 | `pip install` 默认源读超时 | 报错栈显示 `files.pythonhosted.org` ReadTimeout | 先用镜像源解决当下阻塞；最终把 `--index-url` 写入 `requirements.txt` 首行，使"`python -m pip install -r requirements.txt`"这条**题目规定的启动命令**在受限网络下开箱即用 |
 | 2 | PyAV 19 中 `av.open(..., metadata_errors=...)` 参数不存在，导致 **WebM/Opus 解码全部失败** | 用最小复现脚本单步执行解码流程，拿到 `TypeError: open() got an unexpected keyword argument` | 移除该参数；并为此前的"静默失败"补上分步日志，避免再次难定位 |
 | 3 | HuggingFace 官方域名连接被重置，模型下载失败 | 下载脚本日志 `ConnectError: WinError 10054` | 下载脚本增加 `--mirror`，改用 `hf-mirror.com` 镜像 |
-| 4 | 镜像把请求重定向到 `cas-bridge.xethub.hf.co`，实测仅 **25 KB/s**（483 MB 需要约 5 小时） | 用 `curl -w speed_download` 量化测速，并对比多个下载源 | 下载脚本新增 **ModelScope 源**（`--source modelscope`，实测 6.4 MB/s，约 1 分钟完成） |
-| 5 | `encode_wav` 只写单声道，立体声测试输入被当成双倍时长的单声道 | pytest 断言失败（4.0s ≠ 2.0s） | 给 `encode_wav` 增加 `channels` 参数 |
-| 6 | 语言别名缺 `en_GB` | pytest 参数化用例失败 | 补齐别名表 |
-| 7 | 中文输出为繁体（「歡迎」） | 浏览器实测真实模型结果 | 增加 `ASR_INITIAL_PROMPT_ZH` 提示词机制 |
-| 8 | 加上简体提示词后，**短音频出现幻觉**（6 秒音频识别成"这次的节目是《欢迎使用语音识别系统》。"） | 对比"有/无提示词"在同一音频上的输出，并对比不同音频长度 | **用数据做决策**：默认关闭提示词（保留为可选项），并把实时识别的最小缓冲从 0.4 s 提到 1.0 s |
-| 9 | 手工测试脚本用 `subarray(...).buffer` 发送音频，服务端时长翻 5 倍（5 s → 25 s） | 对服务端返回的 `duration_seconds` 做断言时发现异常 | 测试改用 `slice()`；在前端 `pushPcm` 处补注释说明必须新建等长数组 |
+| 4 | 镜像把请求重定向到 `cas-bridge.xethub.hf.co`，实测仅 **25 KB/s**（483 MB 需要约 5 小时） | 用 `curl -w speed_download` 量化测速，并对比多个下载源 | 下载脚本新增 **ModelScope 源**（实测 6.4 MB/s，约 1 分钟完成），并**设为默认下载源** |
+| 5 | requirements 文件里的 `--index-url` 会覆盖命令行 `-i`，使用者可能无法切回官方源 | 用临时 requirements 文件做 4 组对照实验（CLI `-i` / `PIP_INDEX_URL` / `PIP_CONFIG_FILE` / 无配置） | 确认覆盖关系后，在 `requirements.txt` 顶部写明注释、在 README §3.4 单列"网络与镜像"一节说明逃生口 |
+| 6 | `encode_wav` 只写单声道，立体声测试输入被当成双倍时长的单声道 | pytest 断言失败（4.0s ≠ 2.0s） | 给 `encode_wav` 增加 `channels` 参数 |
+| 7 | 语言别名缺 `en_GB` | pytest 参数化用例失败 | 补齐别名表 |
+| 8 | 中文输出为繁体（「歡迎」） | 浏览器实测真实模型结果 | 增加 `ASR_INITIAL_PROMPT_ZH` 提示词机制 |
+| 9 | 加上简体提示词后，**短音频出现幻觉**（6 秒音频识别成"这次的节目是《欢迎使用语音识别系统》。"） | 对比"有/无提示词"在同一音频上的输出，并对比不同音频长度 | **用数据做决策**：默认关闭提示词（保留为可选项），并把实时识别的最小缓冲从 0.4 s 提到 1.0 s |
+| 10 | 手工测试脚本用 `subarray(...).buffer` 发送音频，服务端时长翻 5 倍（5 s → 25 s） | 对服务端返回的 `duration_seconds` 做断言时发现异常 | 测试改用 `slice()`；在前端 `pushPcm` 处补注释说明必须新建等长数组 |
 
 问题 2 值得强调：**如果只依赖"看起来能跑"，WebM/Opus 这条最关键的解码路径会
 在演示时才暴露问题**。因此专门写了单步解码脚本来验证每一种输入格式。
 
-问题 4 与 8 体现了同一条原则：**不要凭直觉选方案，要用可测量的数据选方案**。
+问题 4 与 9 体现了同一条原则：**不要凭直觉选方案，要用可测量的数据选方案**。
 前者是下载速度，后者是识别准确率——两者都用最小实验对比后做了取舍。
 
 **同一原则也用在了模型规模的最终选定上**：计划评审时默认档位定为 `small`，

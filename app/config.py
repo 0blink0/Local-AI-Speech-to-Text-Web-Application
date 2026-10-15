@@ -13,6 +13,28 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# 默认的 HuggingFace 镜像端点。
+# 本项目面向国内网络环境：首次运行若需从 Hub 拉取权重，官方域名常常不可达
+# （实测连接被重置），因此默认走国内镜像。改用官方源：设置
+# HF_ENDPOINT=https://huggingface.co 即可覆盖。
+DEFAULT_HF_ENDPOINT = "https://hf-mirror.com"
+
+
+def apply_network_defaults() -> str:
+    """在导入 huggingface_hub 之前设置默认的 Hub 端点。
+
+    必须在 ``import faster_whisper`` / ``import huggingface_hub`` **之前** 调用，
+    因为端点是在该库导入时读取的。幂等，可重复调用。
+
+    Returns:
+        实际生效的端点值。
+    """
+    current = os.getenv("HF_ENDPOINT", "").strip()
+    if not current:
+        os.environ["HF_ENDPOINT"] = DEFAULT_HF_ENDPOINT
+        return DEFAULT_HF_ENDPOINT
+    return current
+
 
 def _env_str(name: str, default: str) -> str:
     value = os.getenv(name)
@@ -78,6 +100,8 @@ class Settings:
     target_sample_rate: int = 16000
     max_upload_mb: int = 10
     max_record_seconds: int = 60
+    # 生效的 HuggingFace 端点（默认国内镜像），仅用于展示与排障
+    hf_endpoint: str = DEFAULT_HF_ENDPOINT
     # 支持的文件扩展名（用于提前给出友好提示；实际以内容嗅探为准）
     allowed_extensions: tuple[str, ...] = (
         ".wav",
@@ -121,6 +145,7 @@ class Settings:
             target_sample_rate=_env_int("TARGET_SAMPLE_RATE", 16000),
             max_upload_mb=_env_int("MAX_UPLOAD_MB", 10),
             max_record_seconds=_env_int("MAX_RECORD_SECONDS", 60),
+            hf_endpoint=apply_network_defaults(),
         )
 
 

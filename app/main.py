@@ -19,7 +19,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api import routes, ws
 from app.asr import registry
-from app.config import get_settings
+from app.config import apply_network_defaults, get_settings
 from app.core.logging import setup_logging
 from app.errors import AppError
 
@@ -105,6 +105,8 @@ def _register_exception_handlers(app: FastAPI) -> None:
 def create_app() -> FastAPI:
     """应用工厂。测试中可传入不同配置重建应用。"""
     setup_logging()
+    # 必须在任何 faster_whisper / huggingface_hub 导入之前生效
+    apply_network_defaults()
     settings = get_settings()
 
     app = FastAPI(

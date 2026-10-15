@@ -41,4 +41,5 @@ class EngineInfo(BaseModel):
     sample_rate: int
     max_upload_mb: int
     max_record_seconds: int
+    hf_endpoint: str
     supported_languages: list[str]

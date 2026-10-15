@@ -18,6 +18,20 @@ def test_info_endpoint_exposes_engine_state(client):
     assert body["sample_rate"] == 16000
     assert body["max_upload_mb"] == 10
     assert body["supported_languages"] == ["zh", "en"]
+    # 默认走国内镜像端点，便于在受限网络下开箱可用
+    assert body["hf_endpoint"] == "https://hf-mirror.com"
+
+
+def test_network_defaults_prefer_domestic_mirror(monkeypatch):
+    """未显式配置时应启用国内镜像端点；显式配置时不得被覆盖。"""
+    from app.config import DEFAULT_HF_ENDPOINT, apply_network_defaults
+
+    monkeypatch.delenv("HF_ENDPOINT", raising=False)
+    assert apply_network_defaults() == DEFAULT_HF_ENDPOINT
+    assert DEFAULT_HF_ENDPOINT.startswith("https://")
+
+    monkeypatch.setenv("HF_ENDPOINT", "https://huggingface.co")
+    assert apply_network_defaults() == "https://huggingface.co"
 
 
 def test_index_page_is_served(client):

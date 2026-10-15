@@ -46,6 +46,11 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 然后浏览器打开：<http://127.0.0.1:8000>
 
+> **镜像源已内置**：`requirements.txt` 顶部带
+> `--index-url https://pypi.tuna.tsinghua.edu.cn/simple`，因此上面这条安装命令
+> **无需任何额外参数**即可在受限网络下正常拉取依赖。若要改用官方 PyPI 或其他镜像，
+> 把该行注释掉即可（见 §3.4）。
+
 > 首次启动会自动加载模型。若权重尚未下载，会先从 HuggingFace 拉取
 > （默认 `base` 模型约 140 MB，请耐心等待），这也正是题目允许的"首次安装/初始化下载"。
 > 想提前下载或网络受限，请见下一节。
@@ -53,17 +58,17 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ### 3.1 模型初始化（推荐，可选）
 
 ```bash
-# 默认从 HuggingFace 下载 base 模型到项目内 models/base/
+# 默认从 ModelScope 下载 base 模型到项目内 models/base/（国内网络推荐）
 python scripts/download_models.py
 
-# 国内网络推荐：改用 ModelScope（实测速度明显更快）
-python scripts/download_models.py --source modelscope
+# 从 HuggingFace 下载（默认也会走国内镜像端点 hf-mirror.com）
+python scripts/download_models.py --source hf
 
-# HuggingFace 网络受限时使用镜像
-python scripts/download_models.py --mirror
+# HuggingFace 官方源（绕过默认镜像）
+python scripts/download_models.py --source hf --mirror
 
 # 换更大的模型（更准、更慢）
-python scripts/download_models.py --model small --source modelscope
+python scripts/download_models.py --model small
 ```
 
 下载完成后**无需任何额外配置**：应用会自动发现 `models/<size>/` 下的权重
@@ -110,6 +115,22 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 在 `HF_HUB_OFFLINE=1` 下仍能正常识别，即证明识别过程不依赖外网。
+
+### 3.4 网络与镜像（默认已配置为国内源）
+
+本项目面向国内网络环境，**两处默认都走国内源**，开箱即用：
+
+| 环节 | 默认值 | 位置 | 如何改回官方源 |
+| --- | --- | --- | --- |
+| Python 依赖安装 | `https://pypi.tuna.tsinghua.edu.cn/simple` | `requirements.txt` 首行 `--index-url` | 注释掉该行（或改成你的镜像） |
+| 模型权重下载 | ModelScope（`--source modelscope`） | `scripts/download_models.py` 默认值 | `--source hf` |
+| 首次启动自动拉权重 | `HF_ENDPOINT=https://hf-mirror.com` | `app/config.py::DEFAULT_HF_ENDPOINT` | `set HF_ENDPOINT=https://huggingface.co` |
+
+> **注意**：requirements 文件里的 `--index-url` 优先级**高于**命令行 `-i`、`PIP_INDEX_URL`
+> 环境变量与 pip 配置文件（已实测验证）。因此要切换源必须修改 `requirements.txt`，
+> 单靠命令行参数无法覆盖。
+
+当前生效的 Hub 端点可在页面底部「系统状态」或 `GET /api/info` 的 `hf_endpoint` 字段查看。
 
 ---
 
@@ -236,7 +257,7 @@ python scripts/prepare_samples.py --check
 | `ASR_WARMUP` | `1` | 启动时是否预热模型 |
 | `MAX_UPLOAD_MB` | `10` | 上传大小上限 |
 | `MAX_RECORD_SECONDS` | `60` | 单次录音上限（前端计时同步） |
-| `HF_ENDPOINT` | 空 | HuggingFace 镜像，如 `https://hf-mirror.com` |
+| `HF_ENDPOINT` | `https://hf-mirror.com` | HuggingFace 端点；默认国内镜像，设为 `https://huggingface.co` 可切回官方 |
 | `LOG_LEVEL` | `INFO` | 日志级别 |
 
 例：用更小的模型快速启动
