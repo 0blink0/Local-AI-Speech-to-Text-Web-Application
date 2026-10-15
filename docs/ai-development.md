@@ -95,9 +95,9 @@ P8 样本、文档、交付检查
 | --- | --- | --- | --- |
 | 1 | `pip install` 默认源读超时 | 报错栈显示 `files.pythonhosted.org` ReadTimeout | 先用镜像源解决当下阻塞；最终把 `--index-url` 写入 `requirements.txt` 首行，使"`python -m pip install -r requirements.txt`"这条**题目规定的启动命令**在受限网络下开箱即用 |
 | 2 | PyAV 19 中 `av.open(..., metadata_errors=...)` 参数不存在，导致 **WebM/Opus 解码全部失败** | 用最小复现脚本单步执行解码流程，拿到 `TypeError: open() got an unexpected keyword argument` | 移除该参数；并为此前的"静默失败"补上分步日志，避免再次难定位 |
-| 3 | HuggingFace 官方域名连接被重置，模型下载失败 | 下载脚本日志 `ConnectError: WinError 10054` | 下载脚本增加 `--mirror`，改用 `hf-mirror.com` 镜像 |
-| 4 | 镜像把请求重定向到 `cas-bridge.xethub.hf.co`，实测仅 **25 KB/s**（483 MB 需要约 5 小时） | 用 `curl -w speed_download` 量化测速，并对比多个下载源 | 下载脚本新增 **ModelScope 源**（实测 6.4 MB/s，约 1 分钟完成），并**设为默认下载源** |
-| 5 | requirements 文件里的 `--index-url` 会覆盖命令行 `-i`，使用者可能无法切回官方源 | 用临时 requirements 文件做 4 组对照实验（CLI `-i` / `PIP_INDEX_URL` / `PIP_CONFIG_FILE` / 无配置） | 确认覆盖关系后，在 `requirements.txt` 顶部写明注释、在 README §3.4 单列"网络与镜像"一节说明逃生口 |
+| 3 | HuggingFace 官方域名连接被重置，模型下载失败 | 下载脚本日志 `ConnectError: WinError 10054` | 改用国内镜像；最终**移除官方源路径**，HF 端点固定为镜像 |
+| 4 | 镜像把请求重定向到 `cas-bridge.xethub.hf.co`，实测仅 **25 KB/s**（483 MB 需要约 5 小时） | 用 `curl -w speed_download` 量化测速，并对比多个下载源 | 改用 **ModelScope**（实测 6.4 MB/s，约 1 分钟完成），并作为**唯一下载来源** |
+| 5 | requirements 文件里的 `--index-url` 会覆盖命令行 `-i`，使用者可能无法切回官方源 | 用临时 requirements 文件做 4 组对照实验（CLI `-i` / `PIP_INDEX_URL` / `PIP_CONFIG_FILE` / 无配置） | 确认覆盖关系后按"唯一来源"定稿：在 `requirements.txt` 顶部与 README §3.4 明确写出该行为与取舍理由 |
 | 6 | `encode_wav` 只写单声道，立体声测试输入被当成双倍时长的单声道 | pytest 断言失败（4.0s ≠ 2.0s） | 给 `encode_wav` 增加 `channels` 参数 |
 | 7 | 语言别名缺 `en_GB` | pytest 参数化用例失败 | 补齐别名表 |
 | 8 | 中文输出为繁体（「歡迎」） | 浏览器实测真实模型结果 | 增加 `ASR_INITIAL_PROMPT_ZH` 提示词机制 |

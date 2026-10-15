@@ -218,7 +218,7 @@ D:\opencode\
 | ID | 任务 | 交付物 | 验收标准 |
 | --- | --- | --- | --- |
 | T4.1 ★ | `asr/faster_whisper_engine.py`（CPU int8、强制 language、VAD 过滤静音、返回纯文本） | 引擎实现 | 真实 WAV 输出可读中/英文 |
-| T4.2 | `scripts/download_models.py`（支持 `HF_ENDPOINT` 镜像 + 指定 `ASR_MODEL_DIR`） | 下载脚本 | 一条命令完成预取 |
+| T4.2 | `scripts/download_models.py`（来源固定 ModelScope + 指定 `ASR_MODEL_DIR`） | 下载脚本 | 一条命令完成预取 |
 | T4.3 | 离线验证 | 记录 | `HF_HUB_OFFLINE=1` 下识别成功 |
 | T4.4 | 中英混合自动检测（加分，`language=None`） | — | 可选开关 |
 
@@ -306,7 +306,7 @@ D:\opencode\
 | 风险 | 影响 | 应对 |
 | --- | --- | --- |
 | Chromium 录音为 webm/opus，Python 难解码 | 阻塞 F2 | 主用 PyAV（自带 FFmpeg），WAV 保留 stdlib 快路径；前端可提供"转 WAV 上传"备选 |
-| 模型权重下载受网络限制 | 阻塞 F3 | 默认国内源（ModelScope 下载脚本 + `HF_ENDPOINT` 默认 `hf-mirror.com`）+ `ASR_MODEL_DIR` 本地目录 + 下载脚本单独执行 |
+| 模型权重下载受网络限制 | 阻塞 F3 | 来源固定为国内镜像（ModelScope 下载脚本 + `HF_ENDPOINT` 锁定 `hf-mirror.com`）+ `ASR_MODEL_DIR` 本地目录 + 下载脚本单独执行 |
 | CPU 推理慢 | 体验差 | 默认降到 `base`（int8，约 5 倍实时）；允许 env 切到 `tiny`；前端显示耗时与状态 |
 | 本地 Python 3.11 与要求 3.12 不一致 | 复现风险 | **已决策**：安装 3.12 并建 `.venv`，所有依赖与测试均在 3.12 venv 内执行 |
 | 中文测试音频依赖用户提供 | 阻塞 T8.1 / 真实模型测试 | 我方先交付规格 + 占位 + 校验脚本；用户音频到位前，真实模型测试先用我方可生成的合成语音跑通链路 |
@@ -331,7 +331,7 @@ D:\opencode\
 | 默认模型规模 `small` → `base` | 开发后期 | 实测 `base` 中文相似度 0.974、速度约为 `small` 的 3 倍，且实时识别由"不可用"变为"可用"（11 秒音频 6.8 秒完成，`small` 超过 60 秒未完成） | `docs/test-report.md` §3.5 / §3.6、`scripts/benchmark_models.py` |
 | 新增 `ASR_INITIAL_PROMPT_ZH` 但默认关闭 | 开发后期 | 提示词可把中文输出偏置为简体，但会在短音频上诱发幻觉；用数据决定默认关 | `docs/test-report.md` §3.7、§4 #7 |
 | 实时识别最小缓冲 0.4 s → 1.0 s | 开发后期 | 更短的缓冲上 Whisper 容易产生幻觉 | `docs/test-report.md` §4 #7 |
-| 依赖与模型下载默认改用国内源 | 交付前 | 本机实测：PyPI 官方源读超时、HuggingFace 官方域名连接被重置、镜像 CDN 仅 25 KB/s；ModelScope 6.4 MB/s | README §3.4、`requirements.txt` 首行、`scripts/download_models.py` 默认值 |
+| 依赖与模型下载固定为国内源 | 交付前 | 本机实测：PyPI 官方源读超时、HuggingFace 官方域名连接被重置、镜像 CDN 仅 25 KB/s；ModelScope 6.4 MB/s。保留多来源会导致"某源不可用时行为不一致"，故只保留国内镜像为唯一来源 | README §3.4、`requirements.txt` 首行、`scripts/download_models.py`、`app/config.py::apply_network_source()` |
 
 ---
 

@@ -77,6 +77,7 @@ async def info(settings: Settings = Depends(get_settings)) -> EngineInfo:
         max_upload_mb=settings.max_upload_mb,
         max_record_seconds=settings.max_record_seconds,
         hf_endpoint=settings.hf_endpoint,
+        pypi_mirror=settings.pypi_mirror,
         supported_languages=list(SUPPORTED_LANGUAGES),
     )
 

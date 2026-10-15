@@ -42,4 +42,5 @@ class EngineInfo(BaseModel):
     max_upload_mb: int
     max_record_seconds: int
     hf_endpoint: str
+    pypi_mirror: str
     supported_languages: list[str]

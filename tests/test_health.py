@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 
 def test_health_returns_ok(client):
     """GET /health 必须严格返回 {"status": "ok"}（题目 §4.1）。"""
@@ -18,20 +21,42 @@ def test_info_endpoint_exposes_engine_state(client):
     assert body["sample_rate"] == 16000
     assert body["max_upload_mb"] == 10
     assert body["supported_languages"] == ["zh", "en"]
-    # 默认走国内镜像端点，便于在受限网络下开箱可用
+    # 网络来源固定为国内镜像（唯一来源）
     assert body["hf_endpoint"] == "https://hf-mirror.com"
+    assert body["pypi_mirror"].startswith("https://pypi.tuna.tsinghua.edu.cn")
 
 
-def test_network_defaults_prefer_domestic_mirror(monkeypatch):
-    """未显式配置时应启用国内镜像端点；显式配置时不得被覆盖。"""
-    from app.config import DEFAULT_HF_ENDPOINT, apply_network_defaults
-
-    monkeypatch.delenv("HF_ENDPOINT", raising=False)
-    assert apply_network_defaults() == DEFAULT_HF_ENDPOINT
-    assert DEFAULT_HF_ENDPOINT.startswith("https://")
+def test_network_source_is_locked_to_domestic_mirror(monkeypatch):
+    """网络来源固定为国内镜像：即使外部设置了官方源也会被统一为镜像。"""
+    from app.config import HF_MIRROR_ENDPOINT, PYPI_MIRROR, apply_network_source
 
     monkeypatch.setenv("HF_ENDPOINT", "https://huggingface.co")
-    assert apply_network_defaults() == "https://huggingface.co"
+    assert apply_network_source() == HF_MIRROR_ENDPOINT
+    assert os.environ["HF_ENDPOINT"] == HF_MIRROR_ENDPOINT
+
+    monkeypatch.delenv("HF_ENDPOINT", raising=False)
+    assert apply_network_source() == HF_MIRROR_ENDPOINT
+
+    assert PYPI_MIRROR == "https://pypi.tuna.tsinghua.edu.cn/simple"
+
+
+def test_model_download_uses_modelscope_only():
+    """模型下载脚本只保留 ModelScope 一个来源，不提供可切换的其它来源。"""
+    root = Path(__file__).resolve().parent.parent
+    script = (root / "scripts" / "download_models.py").read_text(encoding="utf-8")
+    config = (root / "app" / "config.py").read_text(encoding="utf-8")
+    requirements = (root / "requirements.txt").read_text(encoding="utf-8")
+
+    # 来源常量集中在 config，且指向 ModelScope
+    assert "MODELSCOPE_ENDPOINT = \"https://modelscope.cn\"" in config
+    assert "from app.config import MODELSCOPE_ENDPOINT" in script
+    # 不再保留 HuggingFace 代码路径与可切换来源的参数
+    assert "hf-mirror.com" not in script
+    assert "huggingface.co" not in script
+    assert "--source" not in script
+    assert "WhisperModel" in script  # 仅用于本地目录自检加载
+    # pip 来源同样固定为国内镜像
+    assert "--index-url https://pypi.tuna.tsinghua.edu.cn/simple" in requirements
 
 
 def test_index_page_is_served(client):

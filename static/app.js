@@ -686,6 +686,7 @@
         " · 模型状态：" + loaded +
         " · 采样率：" + info.sample_rate + " Hz" +
         " · Hub 端点：" + (info.hf_endpoint || "—") +
+        " · PyPI 源：" + (info.pypi_mirror || "—") +
         (info.load_error ? " · 加载错误：" + info.load_error : "");
     } catch (err) {
       els.engineInfo.textContent = "无法读取系统状态，请确认后端服务已启动。";

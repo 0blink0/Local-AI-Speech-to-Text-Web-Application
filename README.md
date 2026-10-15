@@ -51,24 +51,21 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 > **无需任何额外参数**即可在受限网络下正常拉取依赖。若要改用官方 PyPI 或其他镜像，
 > 把该行注释掉即可（见 §3.4）。
 
-> 首次启动会自动加载模型。若权重尚未下载，会先从 HuggingFace 拉取
+> 首次启动会自动加载模型。若权重尚未下载，会经由国内镜像拉取
 > （默认 `base` 模型约 140 MB，请耐心等待），这也正是题目允许的"首次安装/初始化下载"。
-> 想提前下载或网络受限，请见下一节。
+> 想提前下载请见下一节。
 
 ### 3.1 模型初始化（推荐，可选）
 
 ```bash
-# 默认从 ModelScope 下载 base 模型到项目内 models/base/（国内网络推荐）
+# 下载默认模型（base）到项目内 models/base/（来源固定为 ModelScope）
 python scripts/download_models.py
-
-# 从 HuggingFace 下载（默认也会走国内镜像端点 hf-mirror.com）
-python scripts/download_models.py --source hf
-
-# HuggingFace 官方源（绕过默认镜像）
-python scripts/download_models.py --source hf --mirror
 
 # 换更大的模型（更准、更慢）
 python scripts/download_models.py --model small
+
+# 指定保存目录
+python scripts/download_models.py --model base --dir D:\models
 ```
 
 下载完成后**无需任何额外配置**：应用会自动发现 `models/<size>/` 下的权重
@@ -98,7 +95,7 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 python scripts/benchmark_models.py --models tiny base small --repeat 3
 ```
 
-> 若两个下载源都无法访问，也可以手动把 CTranslate2 格式的权重放到
+> 若无法访问 ModelScope，也可以手动把 CTranslate2 格式的权重放到
 > `models/base/`（需含 `model.bin`、`config.json`、`tokenizer.json`），
 > 或用 `ASR_MODEL=/绝对路径/到/模型目录` 指定。
 
@@ -118,19 +115,27 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 ### 3.4 网络与镜像（默认已配置为国内源）
 
-本项目面向国内网络环境，**两处默认都走国内源**，开箱即用：
+本项目面向国内网络环境，**网络来源固定为国内镜像，且为唯一来源**，开箱即用：
 
-| 环节 | 默认值 | 位置 | 如何改回官方源 |
-| --- | --- | --- | --- |
-| Python 依赖安装 | `https://pypi.tuna.tsinghua.edu.cn/simple` | `requirements.txt` 首行 `--index-url` | 注释掉该行（或改成你的镜像） |
-| 模型权重下载 | ModelScope（`--source modelscope`） | `scripts/download_models.py` 默认值 | `--source hf` |
-| 首次启动自动拉权重 | `HF_ENDPOINT=https://hf-mirror.com` | `app/config.py::DEFAULT_HF_ENDPOINT` | `set HF_ENDPOINT=https://huggingface.co` |
+| 环节 | 来源（唯一） | 生效位置 |
+| --- | --- | --- |
+| Python 依赖安装 | PyPI 清华镜像 `https://pypi.tuna.tsinghua.edu.cn/simple` | `requirements.txt` 首行 `--index-url` |
+| 模型权重下载 | ModelScope `https://modelscope.cn` | `scripts/download_models.py`（来源常量见 `app/config.py::MODELSCOPE_ENDPOINT`） |
+| 首次启动自动拉权重 | HF 镜像 `https://hf-mirror.com` | `app/config.py::HF_MIRROR_ENDPOINT`（由 `apply_network_source()` 固定写入） |
 
-> **注意**：requirements 文件里的 `--index-url` 优先级**高于**命令行 `-i`、`PIP_INDEX_URL`
-> 环境变量与 pip 配置文件（已实测验证）。因此要切换源必须修改 `requirements.txt`，
-> 单靠命令行参数无法覆盖。
+**设计取舍**：不保留官方源回退，也不提供切换开关。实测官方 PyPI 读超时、HuggingFace
+官方域名连接被重置、镜像 CDN 仅 25 KB/s，而 ModelScope 约 6 MB/s。若在配置中保留多条
+来源，反而会出现"某个源不可用时行为不一致"的问题；固定单一来源后行为可预测、问题可复现。
 
-当前生效的 Hub 端点可在页面底部「系统状态」或 `GET /api/info` 的 `hf_endpoint` 字段查看。
+两点使用注意：
+
+1. `requirements.txt` 里的 `--index-url` 优先级**高于**命令行 `-i`、`PIP_INDEX_URL`
+   环境变量与 pip 配置文件（已实测验证），因此依赖源只能通过修改该文件调整。
+2. `apply_network_source()` 会**无条件**把 `HF_ENDPOINT` 固定为镜像，外部设置的
+   `HF_ENDPOINT` 不生效——这是刻意的，以保证运行环境一致。
+
+当前生效的依赖源与 Hub 端点可在页面底部「系统状态」，或 `GET /api/info` 的
+`pypi_mirror` / `hf_endpoint` 字段查看。
 
 ---
 
@@ -257,7 +262,7 @@ python scripts/prepare_samples.py --check
 | `ASR_WARMUP` | `1` | 启动时是否预热模型 |
 | `MAX_UPLOAD_MB` | `10` | 上传大小上限 |
 | `MAX_RECORD_SECONDS` | `60` | 单次录音上限（前端计时同步） |
-| `HF_ENDPOINT` | `https://hf-mirror.com` | HuggingFace 端点；默认国内镜像，设为 `https://huggingface.co` 可切回官方 |
+| `HF_ENDPOINT` | 固定为 `https://hf-mirror.com` | 由 `apply_network_source()` 强制写入，不可通过环境变量覆盖 |
 | `LOG_LEVEL` | `INFO` | 日志级别 |
 
 例：用更小的模型快速启动
@@ -330,7 +335,7 @@ local-speech-to-text/
 * 60 秒上限只在前端录音生效；上传音频只受 10 MB 体积限制（有意为之）。
 * 不支持的输入（如 AMR、纯视频文件）返回明确的 415/400 提示，不会被静默处理。
 * 首次启动需联网下载权重（默认 `base` 约 140 MB；`small` 约 483 MB）；如需完全离线部署，
-  请先执行第 3.1 节。
+  请先执行第 3.1 节。下载来源固定为国内镜像（见 §3.4）。
 
 ---
 

@@ -206,7 +206,7 @@ set ASR_INITIAL_PROMPT_ZH=以下是普通话的句子。
 | 3 | `en_GB` 语言别名被判为非法 | 别名表缺少 `en_gb` | 补齐别名 | 参数化用例 PASS |
 | 4 | Mock 引擎对静音返回文本，与真实模型行为不一致 | Mock 未模拟"无有效语音" | 全静音返回空文本 | 静音用例 PASS |
 | 5 | `registry.resolve_model_path` 缺少 `Path` 导入 | 新增函数时漏加 import | 补 import | 引擎用例 PASS |
-| 6 | HuggingFace 官方域名连接被重置，模型无法下载（xet-bridge CDN 实测仅 25 KB/s） | 本机网络环境限制 | 下载脚本新增 **ModelScope 源**（实测 6.4 MB/s）与 `--mirror` | 483 MB 权重约 1 分钟下载完成并通过自检 |
+| 6 | HuggingFace 官方域名连接被重置，模型无法下载（xet-bridge CDN 实测仅 25 KB/s） | 本机网络环境限制 | 来源固定为国内镜像：ModelScope 下载脚本（实测 6.4 MB/s）+ `HF_ENDPOINT` 锁定 `hf-mirror.com`，不再保留官方源路径 | 483 MB 权重约 1 分钟下载完成并通过自检 |
 | 7 | 中文提示词在短音频上诱发幻觉 | Whisper 对短音频 + `initial_prompt` 的已知倾向 | 默认关闭提示词；`_MIN_TOTAL_SECONDS` 由 0.4 s 提到 1.0 s，先攒够音频再识别 | 实时识别不再出现"这次的节目是…"类幻觉（见 §3.4） |
 | 8 | 手工测试脚本用 `subarray(...).buffer` 发送音频，服务端时长翻 5 倍（5 s → 25 s） | TypedArray 的 `.buffer` 返回整个底层 ArrayBuffer，而非视图范围 | 测试改用 `slice()`；并在前端 `pushPcm` 处补充注释说明为何必须新建等长数组 | 实时分片时长与服务端一致 |
 

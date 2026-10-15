@@ -15,7 +15,7 @@ import threading
 from pathlib import Path
 
 from app.asr.base import ASREngine
-from app.config import Settings, apply_network_defaults, get_settings
+from app.config import Settings, apply_network_source, get_settings
 from app.errors import ModelUnavailableError
 
 logger = logging.getLogger(__name__)
@@ -57,10 +57,10 @@ def build_engine(settings: Settings) -> ASREngine:
         return MockEngine()
 
     if name in {"faster_whisper", "faster-whisper", "whisper"}:
-        from app.asr.faster_whisper_engine import FasterWhisperEngine
-
         # 防御性设置：确保 Hub 端点在任何 huggingface_hub 导入之前已就位
-        apply_network_defaults()
+        apply_network_source()
+
+        from app.asr.faster_whisper_engine import FasterWhisperEngine
 
         return FasterWhisperEngine(
             model_size=resolve_model_path(settings),

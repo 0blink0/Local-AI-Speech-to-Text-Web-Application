@@ -13,15 +13,22 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# 默认的 HuggingFace 镜像端点。
-# 本项目面向国内网络环境：首次运行若需从 Hub 拉取权重，官方域名常常不可达
-# （实测连接被重置），因此默认走国内镜像。改用官方源：设置
-# HF_ENDPOINT=https://huggingface.co 即可覆盖。
-DEFAULT_HF_ENDPOINT = "https://hf-mirror.com"
+# ---------------------------------------------------------------------------
+# 网络来源：国内镜像，且为**唯一来源**
+#
+# 本项目面向国内网络环境。实测官方源不可用：
+#   * PyPI 官方源读超时；
+#   * HuggingFace 官方域名连接被重置（xet-bridge CDN 仅 25 KB/s）。
+# 因此不提供官方源回退，三处来源统一固定为国内镜像，避免出现
+# "某个源不可用时行为不一致"的情况。
+# ---------------------------------------------------------------------------
+PYPI_MIRROR = "https://pypi.tuna.tsinghua.edu.cn/simple"  # 实际生效位置：requirements.txt 首行
+HF_MIRROR_ENDPOINT = "https://hf-mirror.com"  # 实际生效位置：本文件的 apply_network_source()
+MODELSCOPE_ENDPOINT = "https://modelscope.cn"  # 实际生效位置：scripts/download_models.py
 
 
-def apply_network_defaults() -> str:
-    """在导入 huggingface_hub 之前设置默认的 Hub 端点。
+def apply_network_source() -> str:
+    """把 HuggingFace 端点固定为国内镜像。
 
     必须在 ``import faster_whisper`` / ``import huggingface_hub`` **之前** 调用，
     因为端点是在该库导入时读取的。幂等，可重复调用。
@@ -29,11 +36,8 @@ def apply_network_defaults() -> str:
     Returns:
         实际生效的端点值。
     """
-    current = os.getenv("HF_ENDPOINT", "").strip()
-    if not current:
-        os.environ["HF_ENDPOINT"] = DEFAULT_HF_ENDPOINT
-        return DEFAULT_HF_ENDPOINT
-    return current
+    os.environ["HF_ENDPOINT"] = HF_MIRROR_ENDPOINT
+    return HF_MIRROR_ENDPOINT
 
 
 def _env_str(name: str, default: str) -> str:
@@ -100,8 +104,9 @@ class Settings:
     target_sample_rate: int = 16000
     max_upload_mb: int = 10
     max_record_seconds: int = 60
-    # 生效的 HuggingFace 端点（默认国内镜像），仅用于展示与排障
-    hf_endpoint: str = DEFAULT_HF_ENDPOINT
+    # 生效的镜像来源（固定值），仅用于展示与排障
+    hf_endpoint: str = HF_MIRROR_ENDPOINT
+    pypi_mirror: str = PYPI_MIRROR
     # 支持的文件扩展名（用于提前给出友好提示；实际以内容嗅探为准）
     allowed_extensions: tuple[str, ...] = (
         ".wav",
@@ -145,7 +150,7 @@ class Settings:
             target_sample_rate=_env_int("TARGET_SAMPLE_RATE", 16000),
             max_upload_mb=_env_int("MAX_UPLOAD_MB", 10),
             max_record_seconds=_env_int("MAX_RECORD_SECONDS", 60),
-            hf_endpoint=apply_network_defaults(),
+            hf_endpoint=apply_network_source(),
         )
 
 
