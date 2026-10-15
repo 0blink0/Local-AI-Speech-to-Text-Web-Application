@@ -1,7 +1,7 @@
 # 开发计划（Development Plan）
 
 > 项目：Local AI Speech-to-Text Web Application
-> 状态：**已评审通过（2026-10-15）**，按本计划执行
+> 状态：**P0–P8 已完成**（2026-10-15）；计划在开发前评审通过，执行结果见 `docs/test-report.md`
 > 目标：2 个自然日内交付可运行、可复现、带自动化测试与真实模型验证的本地中英文语音识别 Web 应用
 
 ---
@@ -330,7 +330,13 @@ D:\opencode\
 4. `samples/` 音频待用户提供；在到位前，真实模型测试用合成语音验证链路，音频到位后替换为真实样本。
 
 ### 我方待办的前置动作
-- [ ] 安装 Python 3.12（winget `Python.Python.3.12`）并创建 `.venv`。
+- [x] 安装 Python 3.12（`D:\python312`）并在 `D:\opencode\.venv` 建立虚拟环境。
+- [x] 下载并校验模型权重（ModelScope 源，483.5 MB，见 `docs/test-report.md` §3.1）。
 
 ### 需用户配合的动作
-- [ ] 提供 `samples/chinese.wav` 与 `samples/english.wav`（规格：16 kHz / 单声道 / PCM WAV / 5–15 s），并提供对应人工参考文本（1–2 句）。
+- [ ] 提供你自己的 `samples/chinese.wav` 与 `samples/english.wav`（规格：16 kHz / 单声道 /
+      PCM WAV / 5–15 s），以及对应人工参考文本。
+      当前 `samples/` 中是我方生成的**临时验证音频**（Windows SAPI 语音合成，非真人录音）：
+      `python scripts/prepare_samples.py --zh 你的中文录音 --en 你的英文录音` 即可一键替换。
+- [ ] 在有麦克风的机器上补做「浏览器麦克风录制中文/英文并识别」的人工验证
+      （本机为无麦克风环境，见 `docs/test-report.md` §5）。
