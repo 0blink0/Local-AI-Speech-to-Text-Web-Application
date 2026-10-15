@@ -1,0 +1,27 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# ---- 模型权重与缓存（体积大，不入库）----
+models/
+.cache/
+*.bin
+*.pt
+*.onnx
+*.safetensors
+
+# ---- 运行时产物 ----
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ---- 测试临时产物 ----
+artifacts/
+tmp/
