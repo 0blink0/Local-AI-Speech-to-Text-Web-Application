@@ -41,8 +41,9 @@ router = APIRouter()
 _MIN_NEW_AUDIO_SECONDS = 0.8
 # 单会话缓冲上限（秒），超过则丢弃最旧音频，防止内存无界增长
 _MAX_BUFFER_SECONDS = 120
-# 触发一次识别的整体最小音频长度（秒）
-_MIN_TOTAL_SECONDS = 0.4
+# 触发一次识别的整体最小音频长度（秒）。
+# 低于该长度的缓冲上 Whisper 容易产生幻觉，因此先攒够再识别。
+_MIN_TOTAL_SECONDS = 1.0
 
 
 def _pcm16_to_float32(payload: bytes) -> np.ndarray:

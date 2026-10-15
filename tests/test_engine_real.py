@@ -46,6 +46,7 @@ def _build_real_engine():
         compute_type=settings.compute_type,
         download_root=settings.model_dir,
         beam_size=max(1, settings.beam_size),
+        initial_prompts={"zh": settings.initial_prompt_zh, "en": settings.initial_prompt_en},
     )
 
 

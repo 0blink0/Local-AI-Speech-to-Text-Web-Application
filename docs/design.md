@@ -218,8 +218,9 @@ getUserMedia → AudioContext(48k) → AudioWorkletNode(pcm-capture)
 | 代价 | 缓解措施 |
 | --- | --- |
 | 非原生流式 | 分片 + 累积重识别（题目允许）；实时通道建议用小模型 |
-| 首次需下载数百 MB | 独立下载脚本 + `HF_ENDPOINT` 镜像 + 权重不入库 |
+| 首次需下载数百 MB | 独立下载脚本 + HuggingFace 镜像 / ModelScope 双源 + 权重不入库 |
 | 中文精度不及部分专用模型 | 默认 `small`；可通过 `ASR_MODEL` 升到 `medium` |
+| 中文偶尔输出繁体 | 提供 `ASR_INITIAL_PROMPT_ZH` 提示词；但因短音频幻觉风险默认关闭（见 test-report §3.5） |
 
 ---
 

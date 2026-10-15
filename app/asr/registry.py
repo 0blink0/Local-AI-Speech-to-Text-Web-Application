@@ -65,6 +65,10 @@ def build_engine(settings: Settings) -> ASREngine:
             compute_type=settings.compute_type,
             download_root=settings.model_dir,
             beam_size=settings.beam_size,
+            initial_prompts={
+                "zh": settings.initial_prompt_zh,
+                "en": settings.initial_prompt_en,
+            },
         )
 
     raise ModelUnavailableError(

@@ -39,6 +39,7 @@ class FasterWhisperEngine(ASREngine):
         beam_size: int = 1,
         vad_filter: bool = True,
         local_files_only: bool = False,
+        initial_prompts: dict[str, str] | None = None,
     ) -> None:
         self.model_size = model_size
         self.device = device
@@ -47,6 +48,12 @@ class FasterWhisperEngine(ASREngine):
         self.beam_size = max(1, int(beam_size))
         self.vad_filter = vad_filter
         self.local_files_only = local_files_only
+        # 按语言给初始提示词：可把中文输出稳定偏置为简体，也能注入领域热词
+        self.initial_prompts = {
+            key: value.strip()
+            for key, value in (initial_prompts or {}).items()
+            if value and value.strip()
+        }
 
         self._model = None
         self._lock = threading.RLock()
@@ -112,6 +119,7 @@ class FasterWhisperEngine(ASREngine):
                 vad_parameters={"min_silence_duration_ms": 500},
                 condition_on_previous_text=False,
                 without_timestamps=True,
+                initial_prompt=self.initial_prompts.get(language or "") or None,
             )
             collected: list[ASRSegment] = []
             pieces: list[str] = []

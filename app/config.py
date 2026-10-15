@@ -65,6 +65,10 @@ class Settings:
     beam_size: int = 1
     # 是否允许自动检测语言（中英混合加分项）
     auto_detect_language: bool = False
+    # 初始提示词：可偏置输出风格（如中文简体）或注入领域热词。
+    # 默认留空：实测在短音频上可能诱发幻觉，故只作为可选项提供。
+    initial_prompt_zh: str = ""
+    initial_prompt_en: str = ""
     # 启动时预热模型（首次会触发权重下载）
     warmup: bool = True
 
@@ -109,6 +113,8 @@ class Settings:
             compute_type=_env_str("ASR_COMPUTE_TYPE", "int8"),
             beam_size=_env_int("ASR_BEAM_SIZE", 1),
             auto_detect_language=_env_bool("ASR_AUTO_DETECT_LANGUAGE", False),
+            initial_prompt_zh=_env_str("ASR_INITIAL_PROMPT_ZH", ""),
+            initial_prompt_en=_env_str("ASR_INITIAL_PROMPT_EN", ""),
             warmup=_env_bool("ASR_WARMUP", True),
             target_sample_rate=_env_int("TARGET_SAMPLE_RATE", 16000),
             max_upload_mb=_env_int("MAX_UPLOAD_MB", 10),

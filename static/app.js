@@ -516,6 +516,9 @@
       let total = 0;
       state.pcmPending.forEach((chunk) => (total += chunk.length));
       if (total >= WORKLET_CHUNK_SAMPLES) {
+        // 注意：必须新建一个"恰好这么长"的数组再取 .buffer。
+        // 若直接用 subarray(...).buffer，会把整个底层 ArrayBuffer（全部已缓冲音频）
+        // 发出去，导致服务端收到重复音频、时长翻倍。
         const merged = new Float32Array(total);
         let offset = 0;
         state.pcmPending.forEach((chunk) => {
