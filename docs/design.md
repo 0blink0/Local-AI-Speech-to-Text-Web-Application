@@ -268,7 +268,7 @@ getUserMedia → AudioContext(48k) → AudioWorkletNode(pcm-capture)
 `tiny` 的中文出现实质性错误（"语音识别"→"语音时别"、"模型"→"本帝"），不采用。
 
 **第二轮（真实对话录音，决定性）**：把中文样本换成作者本人的真实录音
-（模拟面试对话，7.16 s）后复测：
+（模拟面试对话，7.16 s）后复测。该录音**仅本地测试、不随仓库分发**，数据如下：
 
 | 模型 | 中文相似度 | 备注 |
 | --- | --- | --- |
@@ -289,7 +289,7 @@ getUserMedia → AudioContext(48k) → AudioWorkletNode(pcm-capture)
 | --- | --- |
 | 非原生流式 | 分片 + 累积重识别（题目允许）；实时识别更适合短句 |
 | 首次需下载数百 MB | 独立下载脚本；来源固定为国内镜像（ModelScope + `hf-mirror` 端点）；权重不入库 |
-| 中文精度 | 默认 `small`（真实录音中文相似度 0.986）；可通过 `ASR_MODEL` 升到 `medium`/`large-v3` |
+| 中文精度 | 默认 `small`（真实录音中文相似度 0.986，合成语音 1.000）；可通过 `ASR_MODEL` 升到 `medium`/`large-v3` |
 | 中文偶尔输出繁体 | 提供 `ASR_INITIAL_PROMPT_ZH` 提示词；但因短音频幻觉风险默认关闭（见 test-report §3.8） |
 
 ---

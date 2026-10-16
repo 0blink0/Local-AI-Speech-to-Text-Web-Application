@@ -330,7 +330,8 @@ D:\opencode\
 | 变更 | 时间 | 原因 | 证据 |
 | --- | --- | --- | --- |
 | 默认模型规模 `small` → `base` | 开发后期 | 实测 `base` 中文相似度 0.974、速度约为 `small` 的 3 倍，且实时识别由"不可用"变为"可用"（11 秒音频 6.8 秒完成，`small` 超过 60 秒未完成） | `docs/test-report.md` §3.5 / §3.6、`scripts/benchmark_models.py` |
-| 默认模型规模 `base` → `small`（回退） | 交付前 | 把中文样本从 TTS 合成音频换成**真实对话录音**后复测：`base` 中文相似度骤降至 **0.611**（且输出繁体），`small` 为 **0.986**。合成语音高估了小模型的可用性 | `docs/test-report.md` §3.7、`docs/design.md` §4.3 |
+| 默认模型规模 `base` → `small`（回退） | 交付前 | 把中文样本从 TTS 合成音频换成**真实对话录音**后复测：`base` 中文相似度骤降至 **0.611**（且输出繁体），`small` 为 **0.986**。合成语音高估了小模型的可用性。该录音仅本地测试、不随仓库分发 | `docs/test-report.md` §3.7、`docs/design.md` §4.3 |
+| 中文样本由真实录音换回合成语音 | 交付前 | 作者要求真实录音仅作测试用、不随仓库分发；仓库内样本改为 Windows SAPI 合成语音并重新实测（zh/en 相似度均 1.000）。真实录音的实测数据作为历史记录保留 | `samples/README.md`、`docs/test-report.md` §3.11 |
 | 新增 `ASR_INITIAL_PROMPT_ZH` 但默认关闭 | 开发后期 | 提示词可把中文输出偏置为简体，但会在短音频上诱发幻觉；用数据决定默认关 | `docs/test-report.md` §3.8、§4 #7 |
 | 实时识别最小缓冲 0.4 s → 1.0 s | 开发后期 | 更短的缓冲上 Whisper 容易产生幻觉 | `docs/test-report.md` §4 #7 |
 | 依赖与模型下载固定为国内源 | 交付前 | 本机实测：PyPI 官方源读超时、HuggingFace 官方域名连接被重置、镜像 CDN 仅 25 KB/s；ModelScope 6.4 MB/s。保留多来源会导致"某源不可用时行为不一致"，故只保留国内镜像为唯一来源 | README §3.4、`requirements.txt` 首行、`scripts/download_models.py`、`app/config.py::apply_network_source()` |

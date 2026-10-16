@@ -5,9 +5,12 @@
 #
 # 比对时会做归一化（去标点/空白/大小写），因此标点差异不影响结果。
 #
-# 替换流程（使用你自己的录音）：
+# 两份样本均为**人工合成语音**（Windows SAPI 文本转语音），不含真人语音与个人信息，
+# 可随仓库自由分发。
+#
+# 替换流程（如需换成自己的录音）：
 #   python scripts/prepare_samples.py --zh 中文录音 --en 英文录音
 #   python scripts/prepare_samples.py --check
 #
-[zh] 然后具体聊一下你之前的一些工作经验和你的一些项目经验，做一个简单的自我介绍。
+[zh] 你好，欢迎使用本地语音识别系统。这是一段用于测试的中文音频，用来验证识别效果是否准确。
 [en] Hello, welcome to the local speech recognition system. This audio sample is used to verify the accuracy of the English transcription.
