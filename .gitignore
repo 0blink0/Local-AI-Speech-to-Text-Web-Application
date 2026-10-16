@@ -22,6 +22,9 @@ Thumbs.db
 .idea/
 .vscode/
 
+# ---- 原始录音（体积大且含个人信息，不随仓库分发）----
+samples/raw/
+
 # ---- 测试临时产物 ----
 artifacts/
 tmp/

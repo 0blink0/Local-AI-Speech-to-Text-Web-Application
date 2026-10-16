@@ -3,9 +3,11 @@
 # 格式：每行一条，[语言码] 开头，语言码仅支持 zh / en。
 # 内容必须与 samples/chinese.wav、samples/english.wav 的实际语音逐字一致。
 #
+# 比对时会做归一化（去标点/空白/大小写），因此标点差异不影响结果。
+#
 # 替换流程（使用你自己的录音）：
 #   python scripts/prepare_samples.py --zh 中文录音 --en 英文录音
 #   python scripts/prepare_samples.py --check
 #
-[zh] 你好，欢迎使用语音识别系统。这是本地模型的中文识别测试音频，用于验证识别效果是否准确。
+[zh] 然后具体聊一下你之前的一些工作经验和你的一些项目经验，做一个简单的自我介绍。
 [en] Hello, welcome to the local speech recognition system. This audio sample is used to verify the accuracy of the English transcription.
