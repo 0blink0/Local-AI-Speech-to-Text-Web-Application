@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import re
+
 import numpy as np
 
 from app.core.audio import encode_wav
@@ -69,19 +71,31 @@ def test_bilingual_round_trip(client):
 
 
 def test_frontend_contract_references_required_endpoints():
-    """前端必须调用题目规定的接口。"""
+    """前端必须调用题目规定的接口，且不依赖选填的实时通道。"""
     app_js = (PROJECT_ROOT / "static" / "app.js").read_text(encoding="utf-8")
     index_html = (PROJECT_ROOT / "static" / "index.html").read_text(encoding="utf-8")
 
+    # 录音与上传两条入口都必须走后端识别接口
     assert "/api/transcribe" in app_js
     assert "/api/info" in app_js
-    assert "/ws/stream" in app_js
     # 语言选择器必须同时提供 zh 与 en
     assert 'value="zh"' in index_html
     assert 'value="en"' in index_html
     # 必须有开始/停止录音按钮与复制能力
     assert "btn-start" in index_html and "btn-stop" in index_html
     assert "btn-copy" in index_html
+
+    # 实时识别前端暂未启用（后端接口与测试仍保留，见 README）。
+    # 这里锁定该决定，避免出现"注释里提到所以测试通过"的假阳性。
+    assert "/ws/stream" not in _code_only(app_js)
+    assert 'id="realtime"' not in index_html
+    assert "realtime-card" not in index_html
+
+
+def _code_only(source: str) -> str:
+    """去掉块注释与行注释后的代码文本，避免注释内容影响契约断言。"""
+    without_block = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
+    return re.sub(r"^\s*//.*$", "", without_block, flags=re.M)
 
 
 # --------------------------------------------------------------- WebSocket 流式

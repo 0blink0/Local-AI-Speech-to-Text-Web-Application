@@ -116,7 +116,14 @@ engine.transcribe()             推理
 * 引擎抛出的任何非预期异常都被包装成 `INFERENCE_FAILED`（500），消息可读。
 * HTTP 路径通过 `run_in_threadpool` 执行，避免阻塞事件循环。
 
-### 2.4 `app/api/ws.py` —— 实时识别
+### 2.4 `app/api/ws.py` —— 实时识别（后端保留，前端暂未接线）
+
+> **状态说明**：本模块已实现并通过自动化测试，但**前端未接线**。
+> 原因：`small` 模型 + CPU 下，11 秒语音的全部 partial 需要 60 秒以上才能跑完，
+> 用户点「停止」后长时间拿不到最终结果，体验不可用。为保证"录音 → 识别"主线的
+> 稳定性，前端暂只保留整段识别。详见 README §5.3。
+> 若接入更小模型或原生流式引擎（如 sherpa-onnx），可直接复用本模块与
+> `static/pcm-worklet.js`。
 
 Whisper 不是原生流式模型。题目 §3 明确允许"通过短音频分片实现近实时识别"，
 因此采用**累积缓冲 + 滑动窗口重识别**：
@@ -175,7 +182,10 @@ getUserMedia()                       权限申请；失败 → 映射为中文�
   → 渲染结果 + 恢复按钮
 ```
 
-### 3.2 实时路径（加分）
+### 3.2 实时路径（后端保留，前端暂未接线）
+
+> 前端已移除该路径的入口与客户端代码，`static/pcm-worklet.js` 与后端
+> `/ws/stream` 保留在仓库中，便于后续重新启用。以下为设计留档。
 
 ```text
 getUserMedia → AudioContext(48k) → AudioWorkletNode(pcm-capture)

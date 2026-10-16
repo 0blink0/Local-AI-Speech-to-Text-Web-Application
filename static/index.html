@@ -44,19 +44,8 @@
         <button id="btn-reset" class="ghost" disabled>重置</button>
       </div>
 
-      <label class="checkbox-label" for="realtime">
-        <input type="checkbox" id="realtime" checked />
-        实时识别（边说话边出文字，实验功能）
-      </label>
-
       <p class="hint">一次录音最长 60 秒，超时自动停止。停止后自动提交识别。</p>
       <p class="hint" id="audio-format-hint"></p>
-    </section>
-
-    <!-- 实时识别中间结果（录音过程中显示） -->
-    <section class="card" id="realtime-card" hidden>
-      <h2>实时识别中…</h2>
-      <pre id="realtime-transcript" class="transcript">正在聆听…</pre>
     </section>
 
     <!-- ③ 音频文件上传 -->
@@ -117,7 +106,6 @@
     </section>
   </main>
 
-  <script>window.__ASSET_VERSIONS__ = { worklet: "/static/pcm-worklet.js" };</script>
   <script src="/static/app.js"></script>
 </body>
 </html>
