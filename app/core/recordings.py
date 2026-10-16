@@ -43,6 +43,13 @@ _CONTAINER_SUFFIX: dict[str, str] = {
 # 只允许这类文件名，杜绝路径穿越与特殊字符
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$")
 
+# 只把音频文件视为录音。
+# 存档目录是普通文件夹，用户可能往里放其它文件（实测有人放进过分析用的 .md）；
+# 若不过滤，"最近一次录音"会被非音频文件顶掉，回放直接失败。
+_AUDIO_SUFFIXES = frozenset(
+    {".wav", ".webm", ".ogg", ".oga", ".opus", ".mp3", ".flac", ".m4a", ".mp4", ".aac", ".bin"}
+)
+
 
 @dataclass(frozen=True)
 class SavedRecording:
@@ -126,6 +133,8 @@ def list_recordings(settings: Settings, limit: int | None = None) -> list[SavedR
         try:
             if not path.is_file() or path.name.startswith("."):
                 continue
+            if path.suffix.lower() not in _AUDIO_SUFFIXES:
+                continue
             stat = path.stat()
         except OSError:  # pragma: no cover - 文件刚好被删除
             continue
@@ -143,6 +152,8 @@ def resolve_recording(filename: str, settings: Settings) -> Path | None:
     只接受 ``_SAFE_NAME`` 形式的文件名，并二次校验解析结果位于存档目录内。
     """
     if not _SAFE_NAME.match(filename or ""):
+        return None
+    if Path(filename).suffix.lower() not in _AUDIO_SUFFIXES:
         return None
 
     directory = Path(settings.recordings_dir).resolve()

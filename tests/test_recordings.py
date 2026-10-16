@@ -97,6 +97,26 @@ def test_list_recordings_on_missing_dir_returns_empty(settings_with_tmp_recordin
     assert list_recordings(settings_with_tmp_recordings) == []
 
 
+def test_non_audio_files_are_ignored(settings_with_tmp_recordings, tone_wav):
+    """存档目录里混入的其它文件不应被当成录音。
+
+    实测出现过：分析脚本往 recordings/ 写了个 .md，"最近一次录音"被它顶掉，
+    前端回放直接失败。
+    """
+    directory = Path(settings_with_tmp_recordings.recordings_dir)
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "notes.md").write_text("# 分析笔记", encoding="utf-8")
+    (directory / "data.json").write_text("{}", encoding="utf-8")
+
+    saved = save_recording(tone_wav, language="zh", settings=settings_with_tmp_recordings)
+    listed = list_recordings(settings_with_tmp_recordings)
+    assert [item.filename for item in listed] == [saved.filename]
+
+    # 即使知道文件名，也不能通过回放接口取非音频文件
+    assert resolve_recording("notes.md", settings_with_tmp_recordings) is None
+    assert resolve_recording("data.json", settings_with_tmp_recordings) is None
+
+
 # --------------------------------------------------------------- 路径穿越防护
 
 
