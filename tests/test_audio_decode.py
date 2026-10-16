@@ -134,6 +134,8 @@ def test_silence_decodes_without_error():
         (b"fLaC\x00\x00\x00\x22", "flac"),
         (b"ID3\x03\x00\x00\x00", "mp3"),
         (b"\x00\x00\x00\x18ftypM4A ", "mp4"),
+        (b"\xff\xf1L\x80\x20\xff\xfc", "aac"),  # ADTS（实测某 .m4a 录音实为此格式）
+        (b"\xff\xfb\x90\x00", "mp3"),
         (b"totally unknown bytes", "unknown"),
     ],
 )

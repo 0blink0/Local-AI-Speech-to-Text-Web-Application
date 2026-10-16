@@ -65,12 +65,22 @@ class AudioData:
 
 
 def sniff_container(data: bytes) -> str:
-    """根据文件头猜测容器格式，仅用于错误分类与日志。"""
+    """根据文件头猜测容器格式，仅用于错误分类与日志。
+
+    注意：判定以**内容**为准，与文件扩展名无关。实测遇到过扩展名为 ``.m4a``
+    但实际是裸 AAC/ADTS 流（文件头 ``FF F1``）的录音，因此这里显式识别 ADTS。
+    """
     if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WAVE":
         return "wav"
+    # AAC / ADTS：12 位同步字 0xFFF，且 layer 位为 00（区别于 MPEG 音频）
+    if len(data) >= 2 and data[0] == 0xFF and (data[1] & 0xF6) == 0xF0:
+        return "aac"
     for magic, name in _CONTAINER_MAGIC:
         if data.startswith(magic):
             return name
+    # MPEG 音频（MP3 无 ID3 标签时）：11 位同步字
+    if len(data) >= 2 and data[0] == 0xFF and (data[1] & 0xE0) == 0xE0:
+        return "mp3"
     # ISO-BMFF：offset 4 起为 'ftyp'（m4a/mp4）
     if len(data) >= 12 and data[4:8] == b"ftyp":
         return "mp4"
