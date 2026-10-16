@@ -82,10 +82,10 @@ class Settings:
 
     # ASR 引擎：mock | faster_whisper
     engine: str = "faster_whisper"
-    # 模型规模或本地模型目录（tiny/base/small/medium/large-v3 或绝对路径）
-    # 默认 base：实测中文相似度 0.974、约 5 倍实时，且实时识别可用；
-    # 追求极致准确率可切到 small（见 README §3.2）。
-    model_size: str = "base"
+    # 模型规模或本地模型目录（small/medium/large-v3 或绝对路径）
+    # 默认 small：在真实对话录音上 small 的中文相似度为 0.986，而 base 仅 0.611
+    # （见 docs/test-report.md §3.7），故以准确率优先。
+    model_size: str = "small"
     # 权重下载/缓存目录；默认项目内 models/，便于离线复现
     model_dir: Path = BASE_DIR / "models"
     device: str = "cpu"
@@ -138,7 +138,7 @@ class Settings:
         return cls(
             static_dir=Path(_env_str("STATIC_DIR", str(BASE_DIR / "static"))),
             engine=_env_str("ASR_ENGINE", "faster_whisper"),
-            model_size=_env_str("ASR_MODEL", "base"),
+            model_size=_env_str("ASR_MODEL", "small"),
             model_dir=model_dir,
             device=_env_str("ASR_DEVICE", "cpu"),
             compute_type=_env_str("ASR_COMPUTE_TYPE", "int8"),

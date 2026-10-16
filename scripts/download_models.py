@@ -9,12 +9,12 @@
 
 用法::
 
-    # 下载默认模型（base）到 models/base/
+    # 下载默认模型（small）到 models/small/
     python scripts/download_models.py
 
     # 指定规模与目录
-    python scripts/download_models.py --model small
-    python scripts/download_models.py --model base --dir D:\\models
+    python scripts/download_models.py --model medium
+    python scripts/download_models.py --dir D:\\models
 
 下载完成后无需任何额外配置，应用会自动使用 ``models/<size>/`` 下的权重
 （见 ``app/asr/registry.py::resolve_model_path``）。离线验证::
@@ -128,8 +128,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="下载本地 ASR 模型权重（来源：ModelScope）")
     parser.add_argument(
         "--model",
-        default=os.getenv("ASR_MODEL", "base"),
-        help="模型规模：tiny/base/small/medium/large-v3（默认取 ASR_MODEL 或 base）",
+        default=os.getenv("ASR_MODEL", "small"),
+        help="模型规模：small/medium/large-v3（默认取 ASR_MODEL 或 small）",
     )
     parser.add_argument(
         "--dir",

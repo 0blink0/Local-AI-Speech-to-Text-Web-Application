@@ -14,7 +14,7 @@
 | Q2 | Python 版本 | **安装 Python 3.12，项目内 `.venv` 虚拟环境开发**（本机现仅有 3.11.9） |
 | Q3 | 实时识别 F6 | **实现**（WebSocket + AudioWorklet 分片方案，失败自动降级） |
 | Q4 | 测试音频来源 | **由用户提供录音**，我方提供文件规格、占位与生成脚本（见 T8.1） |
-| Q5 | 默认模型规模 | 初定 **`small`**；开发后期基于实测数据（见 §9）**改为 `base`** |
+| Q5 | 默认模型规模 | 初定 **`small`** → 依 TTS 实测改为 `base` → 依真实录音实测**改回 `small`**（见 §9） |
 
 ---
 
@@ -41,9 +41,10 @@
 | sherpa-onnx（Zipformer/Paraformer）| 原生流式，实时加分项体验最好；CPU 极快 | 需分别下载中/英两套模型，集成复杂度上升 | 备选/加分 |
 | vosk | 轻量、原生流式、离线友好 | 准确率明显偏低，中英分模型 | 备选（低配兜底） |
 
-**默认方案（已确认）：faster-whisper，模型规模 `base`（int8，CPU），可通过环境变量切到 `tiny`/`small`/`medium`。**
-> 计划评审时初定为 `small`；开发后期用 `scripts/benchmark_models.py` 实测后改为 `base`
-> （原因见 §9）。变更记录保留在此以体现"用数据做决策"的过程。
+**默认方案（最终）：faster-whisper，模型规模 `small`（int8，CPU），可通过环境变量切到 `medium`/`large-v3`。**
+> 计划评审时初定为 `small`；开发后期先用 `scripts/benchmark_models.py` 在合成语音上
+> 实测后改为 `base`；随后把样本换成真实对话录音复测，`base` 中文相似度仅 0.611
+> 而 `small` 为 0.986，于是**改回 `small`**。完整变更链路见 §9。
 理由：一个模型覆盖中英文（满足 F3 与"中英混合自动检测"加分）、CPU 可用、pip 可装、离线可跑。
 代价：非原生流式 → 实时功能（F6）采用"分片 + 滑动窗口重识别"实现，题目 §3 明确允许。
 
@@ -307,7 +308,7 @@ D:\opencode\
 | --- | --- | --- |
 | Chromium 录音为 webm/opus，Python 难解码 | 阻塞 F2 | 主用 PyAV（自带 FFmpeg），WAV 保留 stdlib 快路径；前端可提供"转 WAV 上传"备选 |
 | 模型权重下载受网络限制 | 阻塞 F3 | 来源固定为国内镜像（ModelScope 下载脚本 + `HF_ENDPOINT` 锁定 `hf-mirror.com`）+ `ASR_MODEL_DIR` 本地目录 + 下载脚本单独执行 |
-| CPU 推理慢 | 体验差 | 默认降到 `base`（int8，约 5 倍实时）；允许 env 切到 `tiny`；前端显示耗时与状态 |
+| CPU 推理慢 | 体验差 | 默认 `small`（int8，约 6 倍实时）；必要时可下调档位；前端显示耗时与状态 |
 | 本地 Python 3.11 与要求 3.12 不一致 | 复现风险 | **已决策**：安装 3.12 并建 `.venv`，所有依赖与测试均在 3.12 venv 内执行 |
 | 中文测试音频依赖用户提供 | 阻塞 T8.1 / 真实模型测试 | 我方先交付规格 + 占位 + 校验脚本；用户音频到位前，真实模型测试先用我方可生成的合成语音跑通链路 |
 | faster-whisper 实时性不足 | 加分项打折 | 分片 + 滑动窗口 + tiny 模型专用于实时通道 |
@@ -329,7 +330,8 @@ D:\opencode\
 | 变更 | 时间 | 原因 | 证据 |
 | --- | --- | --- | --- |
 | 默认模型规模 `small` → `base` | 开发后期 | 实测 `base` 中文相似度 0.974、速度约为 `small` 的 3 倍，且实时识别由"不可用"变为"可用"（11 秒音频 6.8 秒完成，`small` 超过 60 秒未完成） | `docs/test-report.md` §3.5 / §3.6、`scripts/benchmark_models.py` |
-| 新增 `ASR_INITIAL_PROMPT_ZH` 但默认关闭 | 开发后期 | 提示词可把中文输出偏置为简体，但会在短音频上诱发幻觉；用数据决定默认关 | `docs/test-report.md` §3.7、§4 #7 |
+| 默认模型规模 `base` → `small`（回退） | 交付前 | 把中文样本从 TTS 合成音频换成**真实对话录音**后复测：`base` 中文相似度骤降至 **0.611**（且输出繁体），`small` 为 **0.986**。合成语音高估了小模型的可用性 | `docs/test-report.md` §3.7、`docs/design.md` §4.3 |
+| 新增 `ASR_INITIAL_PROMPT_ZH` 但默认关闭 | 开发后期 | 提示词可把中文输出偏置为简体，但会在短音频上诱发幻觉；用数据决定默认关 | `docs/test-report.md` §3.8、§4 #7 |
 | 实时识别最小缓冲 0.4 s → 1.0 s | 开发后期 | 更短的缓冲上 Whisper 容易产生幻觉 | `docs/test-report.md` §4 #7 |
 | 依赖与模型下载固定为国内源 | 交付前 | 本机实测：PyPI 官方源读超时、HuggingFace 官方域名连接被重置、镜像 CDN 仅 25 KB/s；ModelScope 6.4 MB/s。保留多来源会导致"某源不可用时行为不一致"，故只保留国内镜像为唯一来源 | README §3.4、`requirements.txt` 首行、`scripts/download_models.py`、`app/config.py::apply_network_source()` |
 
