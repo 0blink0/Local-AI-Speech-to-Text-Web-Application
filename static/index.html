@@ -48,6 +48,27 @@
       <p class="hint" id="audio-format-hint"></p>
     </section>
 
+    <!-- 录音回放 -->
+    <section class="card">
+      <h2>录音回放</h2>
+
+      <p class="hint inline" id="playback-empty">还没有录音。录完一段后可以在这里回听。</p>
+
+      <div class="playback" id="playback-current" hidden>
+        <p class="playback-label">本次录音</p>
+        <audio id="playback-audio" controls preload="metadata"></audio>
+        <p class="hint" id="playback-saved"></p>
+      </div>
+
+      <div id="archive-block" hidden>
+        <p class="playback-label">
+          服务端存档
+          <span class="hint inline" id="archive-dir"></span>
+        </p>
+        <ul class="archive-list" id="archive-list"></ul>
+      </div>
+    </section>
+
     <!-- ③ 音频文件上传 -->
     <section class="card">
       <h2><span class="step">3</span>音频文件上传</h2>

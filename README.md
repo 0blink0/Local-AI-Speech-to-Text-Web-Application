@@ -17,6 +17,7 @@
 | F4 | 结果展示 | 识别语言、状态、识别文本、音频时长、处理耗时，文本可一键复制 |
 | F5 | 异常处理 | 权限拒绝、无麦克风、空文件、损坏音频、格式不支持、超限、模型失败、无有效语音均不崩溃 |
 | F6 | 实时识别（加分项） | 后端已实现（AudioWorklet 采集 → 16 kHz PCM → WebSocket 分片 → 滑动窗口重识别）；**前端当前未启用**，见 §5.3 |
+| 附加 | 录音回放与存档 | 录完可**立即回听**；录音自动存档到服务端 `recordings/`，可在页面回放历史录音 |
 
 ---
 
@@ -145,7 +146,10 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
    - 点击「开始录音」，浏览器会请求麦克风权限，请选择「允许」。
    - 状态灯与计时器显示录音进度，进度条满 60 秒会自动停止。
    - 点击「停止录音」后**计时与进度条立即冻结**，随后自动提交识别，结果显示在「识别结果」区域。
+   - **录音回放**：录完即可在「录音回放」卡片里回听本次录音；该录音同时被存档到服务端
+     `recordings/` 目录，并可在此卡片回放历史录音。
 3. **文件上传**：把音频文件拖入上传区或点击选择文件，然后点「识别该文件」。
+   （上传的文件**不会**被存档，只有麦克风录音会。）
 4. **复制结果**：点击结果区「复制」按钮即可复制识别文本。
 
 ---
@@ -158,6 +162,8 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 | POST | `/api/transcribe` | 上传音频并识别 |
 | GET | `/` | 打开 Web 页面 |
 | GET | `/api/info` | 当前引擎/模型状态（额外提供，便于排障） |
+| GET | `/api/recordings` | 列出已存档的麦克风录音（额外提供） |
+| GET | `/api/recordings/{filename}` | 回放/下载一条存档录音（额外提供） |
 | WS | `/ws/stream` | 实时识别（加分项；后端已实现，前端暂未启用，见 §5.3） |
 
 ### `GET /health`
@@ -201,8 +207,21 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 | 推理失败 | 500 | `INFERENCE_FAILED` |
 | 无有效语音 | 200 | `text` 为空字符串 |
 
-### `WS /ws/stream`（实时识别，加分项）
+### 录音存档（`/api/recordings`，额外接口）
 
+麦克风录音会在识别前**原样**存档到服务端 `recordings/` 目录（鉴权缺失，故仅建议本机使用）。
+上传的文件不存档。
+
+```
+GET /api/recordings                    → {"recordings":[{"filename","size_bytes","created_at","url"}]}
+GET /api/recordings/{filename}         → 音频文件本身（可直接用于 <audio> 播放）
+```
+
+文件名形如 `20261016-142131-zh-b21d.wav`（时间戳-语言-随机串，扩展名按**内容嗅探**决定）。
+读取接口对文件名做白名单校验并二次确认解析路径位于存档目录内，**防路径穿越**。
+关闭方式：`SAVE_RECORDINGS=0`。
+
+### `WS /ws/stream`（实时识别，加分项）
 客户端发送 `{"type":"start","language":"zh"}` → 持续发送 16 kHz 单声道 int16 PCM
 二进制分片 → 发送 `{"type":"stop"}`。服务端返回 `ready` / `started` /
 `partial` / `final` / `error` 消息。
@@ -271,6 +290,9 @@ python scripts/prepare_samples.py --check
 | `ASR_WARMUP` | `1` | 启动时是否预热模型 |
 | `MAX_UPLOAD_MB` | `10` | 上传大小上限 |
 | `MAX_RECORD_SECONDS` | `60` | 单次录音上限（前端计时同步） |
+| `SAVE_RECORDINGS` | `1` | 是否把麦克风录音存档到服务端 |
+| `RECORDINGS_DIR` | `项目内 recordings/` | 录音存档目录 |
+| `RECORDINGS_LIST_LIMIT` | `50` | 列出存档录音的最大条数 |
 | `HF_ENDPOINT` | 固定为 `https://hf-mirror.com` | 由 `apply_network_source()` 强制写入，不可通过环境变量覆盖 |
 | `LOG_LEVEL` | `INFO` | 日志级别 |
 
@@ -310,6 +332,7 @@ local-speech-to-text/
 ├── static/                    # 前端（原生 HTML/CSS/JS，无构建步骤）
 ├── tests/                     # pytest 用例
 ├── samples/                   # 测试音频与参考文本
+├── recordings/                # 麦克风录音存档（运行时生成，不入库）
 ├── scripts/                   # 模型下载、样本准备、模型规模对比
 ├── docs/                      # 需求、设计、测试报告、AI 开发记录
 ├── requirements.txt

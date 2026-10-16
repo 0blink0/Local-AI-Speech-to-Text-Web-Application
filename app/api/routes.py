@@ -15,17 +15,20 @@ import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.asr.registry import get_engine, load_error
 from app.config import Settings, get_settings
 from app.core.languages import SUPPORTED_LANGUAGES
-from app.errors import EmptyFileError, MissingFileError
+from app.core.recordings import list_recordings, resolve_recording, save_recording
+from app.errors import EmptyFileError, MissingFileError, NotFoundError
 from app.schemas import (
     EngineInfo,
     ErrorResponse,
     HealthResponse,
+    RecordingInfo,
+    RecordingListResponse,
     TranscribeResponse,
 )
 from app.services.transcribe import transcribe_bytes
@@ -108,6 +111,7 @@ async def info(settings: Settings = Depends(get_settings)) -> EngineInfo:
         max_record_seconds=settings.max_record_seconds,
         hf_endpoint=settings.hf_endpoint,
         pypi_mirror=settings.pypi_mirror,
+        save_recordings=settings.save_recordings,
         supported_languages=list(SUPPORTED_LANGUAGES),
     )
 
@@ -127,11 +131,17 @@ async def info(settings: Settings = Depends(get_settings)) -> EngineInfo:
 async def transcribe(
     file: UploadFile | None = File(default=None, description="音频文件"),
     language: str | None = Form(default=None, description="识别语言：zh 或 en"),
+    source: str | None = Form(
+        default=None,
+        description="音频来源：recording（浏览器录音，会在服务端存档）或 upload（默认，不存档）",
+    ),
     settings: Settings = Depends(get_settings),
 ) -> TranscribeResponse:
     """上传一段音频并识别。
 
-    请求为 ``multipart/form-data``，字段为 ``file`` 与 ``language``。
+    请求为 ``multipart/form-data``，必填字段为 ``file`` 与 ``language``；
+    ``source`` 为可选扩展字段，传 ``recording`` 时会把原始录音存档到
+    ``settings.recordings_dir``（题目允许自行增加参数与接口）。
     """
     if file is None or (file.filename is None and file.size in (None, 0)):
         raise MissingFileError()
@@ -139,6 +149,16 @@ async def transcribe(
     data = await _read_limited(file, settings.max_upload_bytes)
     if not data:
         raise EmptyFileError()
+
+    # 先存档再识别：即使后续解码/推理失败，原始录音也已保留（便于排查）
+    if (source or "").strip().lower() == "recording":
+        await run_in_threadpool(
+            save_recording,
+            data,
+            language=language or "unk",
+            settings=settings,
+            fallback_name=file.filename,
+        )
 
     outcome = await run_in_threadpool(
         transcribe_bytes, data, language, source_name=file.filename, settings=settings
@@ -149,6 +169,36 @@ async def transcribe(
         duration_seconds=outcome.duration_seconds,
         processing_seconds=outcome.processing_seconds,
     )
+
+
+@router.get("/api/recordings", response_model=RecordingListResponse, tags=["recordings"])
+async def recordings(
+    limit: int | None = None, settings: Settings = Depends(get_settings)
+) -> RecordingListResponse:
+    """列出服务端已存档的录音（非必做接口，便于回听与核对）。"""
+    items = await run_in_threadpool(list_recordings, settings, limit)
+    return RecordingListResponse(
+        recordings=[
+            RecordingInfo(
+                filename=item.filename,
+                size_bytes=item.size_bytes,
+                created_at=item.created_at,
+                url=item.url,
+            )
+            for item in items
+        ]
+    )
+
+
+@router.get("/api/recordings/{filename}", tags=["recordings"])
+async def get_recording(
+    filename: str, settings: Settings = Depends(get_settings)
+) -> FileResponse:
+    """回放/下载一条已存档的录音。文件名经过校验，防止路径穿越。"""
+    path = resolve_recording(filename, settings)
+    if path is None:
+        raise NotFoundError(f"未找到录音 {filename!r}。")
+    return FileResponse(path, filename=filename)
 
 
 @router.get("/", include_in_schema=False, response_class=HTMLResponse)

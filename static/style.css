@@ -22,6 +22,10 @@
 
 * { box-sizing: border-box; }
 
+/* hidden 属性必须能压过组件自身的 display 声明（如 .playback{display:flex}），
+   否则会出现"已设置 hidden 却仍然显示"的问题 */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;
@@ -279,6 +283,55 @@ button.ghost:not(:disabled):hover { color: var(--text); border-color: var(--acce
 
 .hint { font-size: 12.5px; color: var(--text-dim); margin: 10px 0 0; }
 .hint.inline { margin: 0; }
+
+/* ---------------- 录音回放 ---------------- */
+
+.playback { display: flex; flex-direction: column; gap: 8px; }
+
+.playback-label {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.playback audio {
+  width: 100%;
+  height: 38px;
+}
+
+.archive-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.archive-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px 12px;
+  background: var(--bg-elev);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.archive-name {
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  font-size: 12.5px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.archive-meta { font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+.archive-list audio { grid-column: 1 / -1; width: 100%; height: 34px; }
 
 /* ---------------- 错误 / 系统状态 ---------------- */
 

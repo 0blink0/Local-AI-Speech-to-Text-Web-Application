@@ -88,6 +88,12 @@ class AudioTooLongError(AppError):
     default_message = "音频时长超出允许范围。"
 
 
+class NotFoundError(AppError):
+    code = "NOT_FOUND"
+    status_code = 404
+    default_message = "请求的资源不存在。"
+
+
 # ---------------------------------------------------------------- 5xx：服务侧
 
 

@@ -45,6 +45,14 @@
     errorMessage: $("error-message"),
     errorDetail: $("error-detail"),
 
+    playbackEmpty: $("playback-empty"),
+    playbackCurrent: $("playback-current"),
+    playbackAudio: $("playback-audio"),
+    playbackSaved: $("playback-saved"),
+    archiveBlock: $("archive-block"),
+    archiveList: $("archive-list"),
+    archiveDir: $("archive-dir"),
+
     engineInfo: $("engine-info"),
   };
 
@@ -175,11 +183,13 @@
   }
 
   // ----------------------------------------------------------- 上传识别（录音与文件共用）
-  async function transcribeBlob(blob, filename) {
+  async function transcribeBlob(blob, filename, source) {
     const language = els.language.value;
     const form = new FormData();
     form.append("file", blob, filename);
     form.append("language", language);
+    // source=recording 时服务端会把原始录音存档到 recordings/，便于回听与排查
+    if (source) form.append("source", source);
 
     setStatus("正在上传并识别…", "working");
     setMeta({ language });
@@ -330,7 +340,17 @@
         showError("没有录制到任何音频数据，请确认麦克风工作正常后重试。");
         return;
       }
-      await transcribeBlob(blob, "recording" + guessExtension(type));
+
+      // 先把录音挂到播放器，用户可立即回听（不必等识别完成）
+      showRecordingPlayback(blob);
+
+      const result = await transcribeBlob(blob, "recording" + guessExtension(type), "recording");
+      if (result) {
+        els.playbackSaved.textContent = "本次录音已存档到服务端 recordings/ 目录";
+        await refreshArchive();
+      } else {
+        els.playbackSaved.textContent = "本次录音未能识别，但已保留在本页可回听。";
+      }
       els.btnReset.disabled = false;
     };
 
@@ -369,6 +389,77 @@
     }
   }
 
+  // ----------------------------------------------------------- 录音回放与存档
+  let currentObjectUrl = null;
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / 1024 / 1024).toFixed(2) + " MB";
+  }
+
+  function formatTime(unixSeconds) {
+    const d = new Date(unixSeconds * 1000);
+    const pad = (n) => String(n).padStart(2, "0");
+    return (
+      d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
+      " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds())
+    );
+  }
+
+  /** 把刚录到的音频挂到播放器上，供用户回听。 */
+  function showRecordingPlayback(blob) {
+    if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+    currentObjectUrl = URL.createObjectURL(blob);
+    els.playbackAudio.src = currentObjectUrl;
+    els.playbackCurrent.hidden = false;
+    els.playbackEmpty.hidden = true;
+    els.playbackSaved.textContent = "本次录音（尚未提交）· " + formatBytes(blob.size);  }
+
+  /** 没有本次录音、也没有历史存档时，才显示"还没有录音"提示。 */
+  function updatePlaybackEmptyHint(hasArchive) {
+    const hasCurrent = !els.playbackCurrent.hidden;
+    els.playbackEmpty.hidden = hasCurrent || hasArchive;
+  }
+
+  async function refreshArchive() {
+    try {
+      const response = await fetch("/api/recordings?limit=10");
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const { recordings } = await response.json();
+      if (!recordings.length) {
+        els.archiveBlock.hidden = true;
+        updatePlaybackEmptyHint(false);
+        return;
+      }
+      els.archiveBlock.hidden = false;
+      updatePlaybackEmptyHint(true);
+      els.archiveList.textContent = "";
+      recordings.forEach((item) => {
+        const li = document.createElement("li");
+
+        const label = document.createElement("span");
+        label.className = "archive-meta";
+        label.textContent = formatTime(item.created_at) + " · " + formatBytes(item.size_bytes);
+
+        const player = document.createElement("audio");
+        player.controls = true;
+        player.preload = "none";
+        player.src = item.url + "?t=" + Math.floor(item.created_at);
+
+        const name = document.createElement("code");
+        name.className = "archive-name";
+        name.textContent = item.filename;
+
+        li.append(name, label, player);
+        els.archiveList.appendChild(li);
+      });
+    } catch (err) {
+      els.archiveBlock.hidden = true;
+      updatePlaybackEmptyHint(false);
+    }
+  }
+
   // ----------------------------------------------------------- 文件上传
   function setSelectedFile(file) {
     if (!file) {
@@ -403,7 +494,7 @@
     if (!state.selectedFile) return;
     clearError();
     els.btnUpload.disabled = true;
-    const result = await transcribeBlob(state.selectedFile, state.selectedFile.name);
+    const result = await transcribeBlob(state.selectedFile, state.selectedFile.name, "upload");
     els.btnUpload.disabled = false;
     if (!result) setStatus("识别失败", "error");
   }
@@ -512,4 +603,5 @@
   setStatus("就绪", "ready");
   els.languageHint.textContent = "当前选择：" + LANGUAGE_LABEL[els.language.value] + "。";
   loadEngineInfo();
+  refreshArchive();
 })();

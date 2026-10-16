@@ -104,6 +104,11 @@ class Settings:
     target_sample_rate: int = 16000
     max_upload_mb: int = 10
     max_record_seconds: int = 60
+    # 麦克风录音是否在服务端存档（可在页面上回放历史录音）
+    save_recordings: bool = True
+    recordings_dir: Path = BASE_DIR / "recordings"
+    # 存档目录最多列出多少条
+    recordings_list_limit: int = 50
     # 生效的镜像来源（固定值），仅用于展示与排障
     hf_endpoint: str = HF_MIRROR_ENDPOINT
     pypi_mirror: str = PYPI_MIRROR
@@ -135,6 +140,7 @@ class Settings:
     def from_env(cls) -> "Settings":
         raw_dir = os.getenv("ASR_MODEL_DIR", "").strip()
         model_dir = Path(raw_dir).expanduser() if raw_dir else BASE_DIR / "models"
+        raw_recordings = os.getenv("RECORDINGS_DIR", "").strip()
         return cls(
             static_dir=Path(_env_str("STATIC_DIR", str(BASE_DIR / "static"))),
             engine=_env_str("ASR_ENGINE", "faster_whisper"),
@@ -150,6 +156,13 @@ class Settings:
             target_sample_rate=_env_int("TARGET_SAMPLE_RATE", 16000),
             max_upload_mb=_env_int("MAX_UPLOAD_MB", 10),
             max_record_seconds=_env_int("MAX_RECORD_SECONDS", 60),
+            save_recordings=_env_bool("SAVE_RECORDINGS", True),
+            recordings_dir=(
+                Path(raw_recordings).expanduser()
+                if raw_recordings
+                else BASE_DIR / "recordings"
+            ),
+            recordings_list_limit=_env_int("RECORDINGS_LIST_LIMIT", 50),
             hf_endpoint=apply_network_source(),
         )
 

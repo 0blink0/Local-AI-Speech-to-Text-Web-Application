@@ -43,4 +43,18 @@ class EngineInfo(BaseModel):
     max_record_seconds: int
     hf_endpoint: str
     pypi_mirror: str
+    save_recordings: bool
     supported_languages: list[str]
+
+
+class RecordingInfo(BaseModel):
+    """一条已存档的录音（``GET /api/recordings``）。"""
+
+    filename: str = Field(description="存档文件名")
+    size_bytes: int = Field(description="文件大小（字节）")
+    created_at: float = Field(description="保存时间（Unix 时间戳，秒）")
+    url: str = Field(description="回放/下载地址")
+
+
+class RecordingListResponse(BaseModel):
+    recordings: list[RecordingInfo]
