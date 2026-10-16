@@ -378,8 +378,24 @@ local-speech-to-text/
 
 ---
 
-## 11. 文档索引
+## 12. 生成交付包（可选）
 
+如需把源码打包给他人评审，用 `git archive` 导出即可 —— 它只导出**被 git 跟踪的文件**，
+天然排除了 `.git/`、`.venv/`、`models/`（权重）、`recordings/`（录音存档）等运行期产物：
+
+```bash
+mkdir -p dist
+git archive --format=zip --prefix=local-speech-to-text/ -o dist/local-speech-to-text.zip HEAD
+```
+
+包内**只有人工合成的测试音频**（`samples/chinese.wav`、`samples/english.wav`），
+不含任何真人录音。拿到包的人按第 3 节即可独立跑起来；
+模型权重体积较大（`small` 约 460 MB），按题目要求**不随包分发**，
+由使用者执行 `python scripts/download_models.py` 自行下载。
+
+---
+
+## 13. 文档索引
 | 文档 | 内容 |
 | --- | --- |
 | [docs/requirements.md](docs/requirements.md) | 需求理解、功能拆分、假设与边界条件 |
