@@ -230,9 +230,45 @@ button.ghost:not(:disabled):hover { color: var(--text); border-color: var(--acce
 
 .dropzone.dragover { border-color: var(--accent); background: rgba(74, 140, 255, 0.08); }
 
-.link { color: var(--accent); cursor: pointer; text-decoration: underline; }
+/* 已选中文件：实线 + 抬升背景，并把文件名放大，让用户一眼看清选了什么 */
+.dropzone.has-file {
+  border-style: solid;
+  border-color: var(--accent);
+  background: rgba(74, 140, 255, 0.08);
+  padding: 18px 18px;
+  text-align: left;
+}
 
-.file-info { font-size: 13px; color: var(--text-dim); margin: 10px 0 0; }
+.dz-empty { margin: 0; }
+
+.dz-empty.is-clickable { cursor: pointer; }
+
+.dz-file-name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.dz-file-meta {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.dz-actions {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dz-actions button { padding: 4px 14px; font-size: 12.5px; }
+
+.link { color: var(--accent); cursor: pointer; text-decoration: underline; }
 
 /* ---------------- 结果 ---------------- */
 

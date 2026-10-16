@@ -84,6 +84,9 @@ def test_frontend_contract_references_required_endpoints():
     # 必须有开始/停止录音按钮与复制能力
     assert "btn-start" in index_html and "btn-stop" in index_html
     assert "btn-copy" in index_html
+    # 选中文件后需要醒目的文件名展示区（填满虚线框、放大文件名）
+    assert 'id="dz-file-name"' in index_html and 'id="dz-selected"' in index_html
+    assert 'id="btn-clear-file"' in index_html
 
     # 实时识别前端暂未启用（后端接口与测试仍保留，见 README）。
     # 这里锁定该决定，避免出现"注释里提到所以测试通过"的假阳性。

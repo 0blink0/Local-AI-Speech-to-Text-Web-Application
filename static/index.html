@@ -65,10 +65,21 @@
     <section class="card">
       <h2><span class="step">3</span>音频文件上传</h2>
       <div class="dropzone" id="dropzone">
-        <p>把音频文件拖到这里，或<label class="link" for="file-input">选择文件</label></p>
         <input type="file" id="file-input" accept=".wav,.webm,.ogg,.oga,.opus,.mp3,.flac,.m4a,.mp4,audio/*" hidden />
+
+        <p class="dz-empty" id="dz-empty">
+          把音频文件拖到这里，或<label class="link" for="file-input">选择文件</label>
+        </p>
+
+        <div class="dz-selected" id="dz-selected" hidden>
+          <p class="dz-file-name" id="dz-file-name">—</p>
+          <p class="dz-file-meta" id="file-info">—</p>
+          <div class="dz-actions">
+            <label class="link" for="file-input">重新选择</label>
+            <button type="button" id="btn-clear-file" class="ghost">移除</button>
+          </div>
+        </div>
       </div>
-      <p class="file-info" id="file-info">未选择文件</p>
       <div class="button-row">
         <button id="btn-upload" class="primary" disabled>识别该文件</button>
       </div>

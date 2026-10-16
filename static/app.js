@@ -29,8 +29,12 @@
     audioFormatHint: $("audio-format-hint"),
 
     dropzone: $("dropzone"),
+    dzEmpty: $("dz-empty"),
+    dzSelected: $("dz-selected"),
+    dzFileName: $("dz-file-name"),
     fileInput: $("file-input"),
     fileInfo: $("file-info"),
+    btnClearFile: $("btn-clear-file"),
     btnUpload: $("btn-upload"),
 
     metaLanguage: $("meta-language"),
@@ -115,10 +119,17 @@
     }
   }
 
-  function setTranscript(text) {
+  function setTranscript(text, placeholder) {
     state.lastText = text || "";
-    els.transcript.textContent = state.lastText || "（未识别到有效语音）";
+    els.transcript.textContent = state.lastText || placeholder || "（未识别到有效语音）";
     els.btnCopy.disabled = !state.lastText;
+  }
+
+  /** 开始一次新识别前清空上一次结果，避免识别期间还显示旧文本造成混淆。 */
+  function clearResult() {
+    setTranscript("", "识别中…");
+    setMeta({ language: els.language.value, duration: null, processing: null });
+    els.copyHint.textContent = "";
   }
 
   // ----------------------------------------------------------- 计时与 60s 限制
@@ -189,18 +200,20 @@
     // source=recording 时服务端会把原始录音存档到 recordings/，便于回听与排查
     if (source) form.append("source", source);
 
+    clearResult(); // 先清掉上一次的结果，再开始新的识别
     setStatus("正在上传并识别…", "working");
-    setMeta({ language });
 
     let response;
     try {
       response = await fetch("/api/transcribe", { method: "POST", body: form });
     } catch (err) {
+      setTranscript("", "（识别未完成）");
       showError("无法连接后端服务，请确认服务已启动。", String(err));
       return null;
     }
 
     if (!response.ok) {
+      setTranscript("", "（识别未完成）");
       const { message, code } = await readError(response);
       showError(message, "错误码：" + code);
       return null;
@@ -475,14 +488,15 @@
   function setSelectedFile(file) {
     if (!file) {
       state.selectedFile = null;
-      els.fileInfo.textContent = "未选择文件";
+      els.dzSelected.hidden = true;
+      els.dzEmpty.hidden = false;
+      els.dropzone.classList.remove("has-file");
       els.btnUpload.disabled = true;
       return;
     }
     if (file.size === 0) {
       showError("所选文件为空，请重新选择。", file.name);
-      state.selectedFile = null;
-      els.btnUpload.disabled = true;
+      setSelectedFile(null);
       return;
     }
     if (file.size > MAX_UPLOAD_BYTES) {
@@ -490,14 +504,17 @@
         "文件过大，服务端上限为 10 MB。",
         file.name + "（" + (file.size / 1024 / 1024).toFixed(2) + " MB）"
       );
-      state.selectedFile = null;
-      els.btnUpload.disabled = true;
+      setSelectedFile(null);
       return;
     }
     clearError();
     state.selectedFile = file;
-    els.fileInfo.textContent =
-      "已选择：" + file.name + "（" + (file.size / 1024).toFixed(1) + " KB）";
+    els.dzFileName.textContent = file.name;
+    els.fileInfo.textContent = formatBytes(file.size) +
+      (file.type ? " · " + file.type : "");
+    els.dzEmpty.hidden = true;
+    els.dzSelected.hidden = false;
+    els.dropzone.classList.add("has-file");
     els.btnUpload.disabled = false;
   }
 
@@ -567,6 +584,17 @@
 
   els.fileInput.addEventListener("change", (event) => {
     setSelectedFile(event.target.files && event.target.files[0]);
+  });
+
+  els.btnClearFile.addEventListener("click", () => {
+    els.fileInput.value = "";
+    setSelectedFile(null);
+  });
+
+  // 空状态下点击虚线框也能选文件
+  els.dzEmpty.classList.add("is-clickable");
+  els.dzEmpty.addEventListener("click", (event) => {
+    if (event.target.tagName !== "LABEL") els.fileInput.click();
   });
 
   ["dragenter", "dragover"].forEach((type) => {
