@@ -120,6 +120,20 @@ def create_app() -> FastAPI:
     app.include_router(routes.router)
     app.include_router(ws.router)
 
+    @app.middleware("http")
+    async def _no_cache_static(request: Request, call_next):
+        """页面与静态资源禁用浏览器缓存。
+
+        本项目是本地开发/演示工具，改完前端往往直接刷新查看；若浏览器缓存了
+        旧的 HTML/CSS/JS，会出现"改了没生效"的困惑。这里统一加 no-cache，
+        让每次刷新都向服务端确认一次（内容未变仍走 304，开销可忽略）。
+        """
+        response = await call_next(request)
+        path = request.url.path
+        if path == "/" or path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     if settings.static_dir.exists():
         app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
     else:  # pragma: no cover - 正常交付必然存在

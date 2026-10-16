@@ -13,29 +13,22 @@
   </header>
 
   <main class="layout">
-    <!-- 全局配置 -->
+    <!-- ① 识别设置 -->
     <section class="card">
-      <h2>识别设置</h2>
-      <div class="field-row">
+      <h2><span class="step">1</span>识别设置</h2>
+      <div class="settings-row">
         <label for="language">识别语言</label>
         <select id="language">
           <option value="zh">中文（普通话）</option>
           <option value="en">English</option>
         </select>
+        <span class="hint inline" id="language-hint">当前选择：中文（普通话）。</span>
       </div>
-      <p class="hint" id="language-hint">当前选择：中文（普通话）。中英混合请分别选择对应语言识别。</p>
     </section>
 
-    <!-- 录音 -->
+    <!-- ② 麦克风录音 -->
     <section class="card">
-      <h2>麦克风录音</h2>
-
-      <div class="field-row">
-        <label class="checkbox-label" for="realtime">
-          <input type="checkbox" id="realtime" checked />
-          实时识别（边说话边出文字，实验功能）
-        </label>
-      </div>
+      <h2><span class="step">2</span>麦克风录音</h2>
 
       <div class="status-bar">
         <span class="status-dot" id="status-dot" data-state="idle"></span>
@@ -51,13 +44,24 @@
         <button id="btn-reset" class="ghost" disabled>重置</button>
       </div>
 
+      <label class="checkbox-label" for="realtime">
+        <input type="checkbox" id="realtime" checked />
+        实时识别（边说话边出文字，实验功能）
+      </label>
+
       <p class="hint">一次录音最长 60 秒，超时自动停止。停止后自动提交识别。</p>
       <p class="hint" id="audio-format-hint"></p>
     </section>
 
-    <!-- 上传 -->
+    <!-- 实时识别中间结果（录音过程中显示） -->
+    <section class="card" id="realtime-card" hidden>
+      <h2>实时识别中…</h2>
+      <pre id="realtime-transcript" class="transcript">正在聆听…</pre>
+    </section>
+
+    <!-- ③ 音频文件上传 -->
     <section class="card">
-      <h2>音频文件上传</h2>
+      <h2><span class="step">3</span>音频文件上传</h2>
       <div class="dropzone" id="dropzone">
         <p>把音频文件拖到这里，或<label class="link" for="file-input">选择文件</label></p>
         <input type="file" id="file-input" accept=".wav,.webm,.ogg,.oga,.opus,.mp3,.flac,.m4a,.mp4,audio/*" hidden />
@@ -69,9 +73,9 @@
       <p class="hint">支持 WAV、浏览器录音格式（WebM/OGG-Opus）以及常见音频格式，单文件不超过 10 MB。</p>
     </section>
 
-    <!-- 结果 -->
+    <!-- ④ 识别结果 -->
     <section class="card result-card">
-      <h2>识别结果</h2>
+      <h2><span class="step">4</span>识别结果</h2>
 
       <div class="meta-grid">
         <div class="meta-item">
@@ -92,17 +96,11 @@
         </div>
       </div>
 
-      <div class="transcript-wrap">
-        <pre id="transcript" class="transcript" aria-live="polite">识别结果会显示在这里…</pre>
+      <div class="transcript-head">
         <button id="btn-copy" class="ghost" disabled>复制</button>
       </div>
+      <pre id="transcript" class="transcript" aria-live="polite">识别结果会显示在这里…</pre>
       <p class="hint" id="copy-hint"></p>
-    </section>
-
-    <!-- 实时中间结果 -->
-    <section class="card" id="realtime-card" hidden>
-      <h2>实时识别中…</h2>
-      <pre id="realtime-transcript" class="transcript">正在聆听…</pre>
     </section>
 
     <!-- 错误 -->
@@ -112,7 +110,8 @@
       <p class="hint" id="error-detail"></p>
     </section>
 
-    <section class="card">
+    <!-- 系统状态（排障用，弱化显示） -->
+    <section class="card system-card">
       <h2>系统状态</h2>
       <p class="hint" id="engine-info">正在读取…</p>
     </section>
