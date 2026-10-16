@@ -12,9 +12,10 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.asr.registry import get_engine, load_error
@@ -34,6 +35,35 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _READ_CHUNK = 1024 * 1024
+
+# 需要按文件修改时间打版本号的静态资源
+_VERSIONED_ASSETS = ("style.css", "app.js", "pcm-worklet.js")
+
+
+def _asset_version(path: Path) -> str:
+    """用文件修改时间戳作为版本号；文件不存在时返回空串。"""
+    try:
+        return str(int(path.stat().st_mtime))
+    except OSError:  # pragma: no cover - 交付物中必然存在
+        return ""
+
+
+def render_index(settings: Settings) -> str:
+    """读取首页并给静态资源 URL 加上版本号后返回。
+
+    背景：浏览器会无条件复用同 URL 的缓存资源，改完前端后用户按普通刷新
+    仍可能看到旧样式（实测遇到"服务端已是新 CSS，页面还是旧布局"）。
+    把 URL 变成 ``/static/style.css?v=<mtime>`` 后，文件一改 URL 就变，
+    缓存自然失效，无需用户手动清缓存。
+    """
+    index_path = settings.static_dir / "index.html"
+    html = index_path.read_text(encoding="utf-8")
+    for name in _VERSIONED_ASSETS:
+        version = _asset_version(settings.static_dir / name)
+        if version:
+            html = html.replace(f"/static/{name}", f"/static/{name}?v={version}")
+    return html
+
 
 
 async def _read_limited(upload: UploadFile, limit: int) -> bytes:
@@ -121,8 +151,7 @@ async def transcribe(
     )
 
 
-@router.get("/", include_in_schema=False)
-async def index(settings: Settings = Depends(get_settings)) -> FileResponse:
-    """返回 Web 页面。"""
-    index_path = settings.static_dir / "index.html"
-    return FileResponse(index_path, media_type="text/html; charset=utf-8")
+@router.get("/", include_in_schema=False, response_class=HTMLResponse)
+async def index(settings: Settings = Depends(get_settings)) -> HTMLResponse:
+    """返回 Web 页面（静态资源带版本号，避免浏览器用旧缓存）。"""
+    return HTMLResponse(render_index(settings))

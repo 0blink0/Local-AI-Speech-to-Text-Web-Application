@@ -54,6 +54,10 @@
   const MAX_SECONDS = 60;
   const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
   const WORKLET_CHUNK_SAMPLES = 8000; // 0.5s @16k
+  // AudioWorklet 模块由服务端在 HTML 中写入带版本号的 URL，避免缓存旧版本
+  const WORKLET_URL =
+    (window.__ASSET_VERSIONS__ && window.__ASSET_VERSIONS__.worklet) ||
+    "/static/pcm-worklet.js";
 
   const state = {
     phase: "idle", // idle | recording | working | done | error
@@ -470,7 +474,7 @@
       let captured = false;
       if (audioContext.audioWorklet) {
         try {
-          await audioContext.audioWorklet.addModule("/static/pcm-worklet.js");
+          await audioContext.audioWorklet.addModule(WORKLET_URL);
           const workletNode = new AudioWorkletNode(audioContext, "pcm-capture");
           workletNode.port.onmessage = (event) => pushPcm(event.data);
           state.workletNode = workletNode;
