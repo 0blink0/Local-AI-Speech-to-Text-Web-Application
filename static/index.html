@@ -55,17 +55,9 @@
       <p class="hint inline" id="playback-empty">还没有录音。录完一段后可以在这里回听。</p>
 
       <div class="playback" id="playback-current" hidden>
-        <p class="playback-label">本次录音</p>
+        <p class="playback-label" id="playback-label">最近一次录音</p>
         <audio id="playback-audio" controls preload="metadata"></audio>
         <p class="hint" id="playback-saved"></p>
-      </div>
-
-      <div id="archive-block" hidden>
-        <p class="playback-label">
-          服务端存档
-          <span class="hint inline" id="archive-dir"></span>
-        </p>
-        <ul class="archive-list" id="archive-list"></ul>
       </div>
     </section>
 

@@ -47,11 +47,9 @@
 
     playbackEmpty: $("playback-empty"),
     playbackCurrent: $("playback-current"),
+    playbackLabel: $("playback-label"),
     playbackAudio: $("playback-audio"),
     playbackSaved: $("playback-saved"),
-    archiveBlock: $("archive-block"),
-    archiveList: $("archive-list"),
-    archiveDir: $("archive-dir"),
 
     engineInfo: $("engine-info"),
   };
@@ -346,10 +344,10 @@
 
       const result = await transcribeBlob(blob, "recording" + guessExtension(type), "recording");
       if (result) {
-        els.playbackSaved.textContent = "本次录音已存档到服务端 recordings/ 目录";
-        await refreshArchive();
+        await loadLatestRecording(); // 换成服务端存档里的这条，并显示文件名
       } else {
-        els.playbackSaved.textContent = "本次录音未能识别，但已保留在本页可回听。";
+        els.playbackSaved.textContent =
+          "本次录音未能识别，但仍可在此回听 · " + formatBytes(blob.size);
       }
       els.btnReset.disabled = false;
     };
@@ -407,56 +405,69 @@
     );
   }
 
-  /** 把刚录到的音频挂到播放器上，供用户回听。 */
+  /**
+   * 给播放器设置音频源。
+   *
+   * 浏览器 MediaRecorder 产出的 WebM 是流式格式、头部不含时长，浏览器会报告
+   * duration=Infinity，界面表现为"0:00 / 0:00"且进度条无法拖动。
+   * 这里用业界通用的做法：loadedmetadata 后 seek 到一个极大值，触发浏览器
+   * 扫描全文算出真实时长，随后立即回到起点。
+   */
+  function setAudioSource(element, url) {
+    element.src = url;
+    element.addEventListener(
+      "loadedmetadata",
+      () => {
+        if (element.duration !== Infinity) return;
+        const restore = () => {
+          element.currentTime = 0;
+          element.removeEventListener("timeupdate", restore);
+        };
+        element.addEventListener("timeupdate", restore);
+        try {
+          element.currentTime = 1e101;
+        } catch (err) {
+          element.removeEventListener("timeupdate", restore);
+        }
+      },
+      { once: true }
+    );
+  }
+
+  /** 把刚录到的音频挂到播放器上，供用户立即回听（不必等识别完成）。 */
   function showRecordingPlayback(blob) {
     if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
     currentObjectUrl = URL.createObjectURL(blob);
-    els.playbackAudio.src = currentObjectUrl;
+    setAudioSource(els.playbackAudio, currentObjectUrl);
+    els.playbackLabel.textContent = "本次录音";
     els.playbackCurrent.hidden = false;
     els.playbackEmpty.hidden = true;
-    els.playbackSaved.textContent = "本次录音（尚未提交）· " + formatBytes(blob.size);  }
-
-  /** 没有本次录音、也没有历史存档时，才显示"还没有录音"提示。 */
-  function updatePlaybackEmptyHint(hasArchive) {
-    const hasCurrent = !els.playbackCurrent.hidden;
-    els.playbackEmpty.hidden = hasCurrent || hasArchive;
+    els.playbackSaved.textContent = "识别中… · " + formatBytes(blob.size);
   }
 
-  async function refreshArchive() {
+  /** 载入最近一次录音（服务端存档里最新的一条），使回放刷新后仍可听。 */
+  async function loadLatestRecording() {
+    if (currentObjectUrl) {
+      URL.revokeObjectURL(currentObjectUrl);
+      currentObjectUrl = null;
+    }
     try {
-      const response = await fetch("/api/recordings?limit=10");
+      const response = await fetch("/api/recordings?limit=1");
       if (!response.ok) throw new Error("HTTP " + response.status);
       const { recordings } = await response.json();
-      if (!recordings.length) {
-        els.archiveBlock.hidden = true;
-        updatePlaybackEmptyHint(false);
-        return;
-      }
-      els.archiveBlock.hidden = false;
-      updatePlaybackEmptyHint(true);
-      els.archiveList.textContent = "";
-      recordings.forEach((item) => {
-        const li = document.createElement("li");
+      if (!recordings.length) return false;
 
-        const label = document.createElement("span");
-        label.className = "archive-meta";
-        label.textContent = formatTime(item.created_at) + " · " + formatBytes(item.size_bytes);
-
-        const player = document.createElement("audio");
-        player.controls = true;
-        player.preload = "none";
-        player.src = item.url + "?t=" + Math.floor(item.created_at);
-
-        const name = document.createElement("code");
-        name.className = "archive-name";
-        name.textContent = item.filename;
-
-        li.append(name, label, player);
-        els.archiveList.appendChild(li);
-      });
+      const item = recordings[0];
+      setAudioSource(els.playbackAudio, item.url + "?t=" + Math.floor(item.created_at));
+      els.playbackLabel.textContent = "最近一次录音";
+      els.playbackCurrent.hidden = false;
+      els.playbackEmpty.hidden = true;
+      els.playbackSaved.textContent =
+        "已存档：" + item.filename + " · " + formatTime(item.created_at) +
+        " · " + formatBytes(item.size_bytes);
+      return true;
     } catch (err) {
-      els.archiveBlock.hidden = true;
-      updatePlaybackEmptyHint(false);
+      return false;
     }
   }
 
@@ -603,5 +614,5 @@
   setStatus("就绪", "ready");
   els.languageHint.textContent = "当前选择：" + LANGUAGE_LABEL[els.language.value] + "。";
   loadEngineInfo();
-  refreshArchive();
+  loadLatestRecording();
 })();
